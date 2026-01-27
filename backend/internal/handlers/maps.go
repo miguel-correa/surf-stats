@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
-	"surfstats/internal/models"
+	"surfstats/internal/db"
 )
 
-func GetMaps(db *sql.DB) http.HandlerFunc {
+func GetMaps(database *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		allowedSortCols := map[string]string{
@@ -18,25 +18,15 @@ func GetMaps(db *sql.DB) http.HandlerFunc {
 
 		q := r.URL.Query()
 
-		args := []any{}
-		query := (`
-			SELECT id, name, tier, year, completions, hours_played, comp_per_hour, notes
-			FROM maps
-			WHERE 1=1
-		`)
-
+		var tierPtr *int
 		if tierStr := q.Get("tier"); tierStr != "" {
 			tier, err := strconv.Atoi(tierStr)
 			if err == nil && tier >= 1 && tier <= 8 {
-				query += " AND tier = ?"
-				args = append(args, tier)
+				tierPtr = &tier
 			}
 		}
 
-		if search := q.Get("search"); search != "" {
-			query += " AND name LIKE ?"
-			args = append(args, "%"+search+"%")
-		}
+		search := q.Get("search")
 
 		sortKey := q.Get("sort")
 		sortCol, ok := allowedSortCols[sortKey]
@@ -49,35 +39,15 @@ func GetMaps(db *sql.DB) http.HandlerFunc {
 			order = "desc"
 		}
 
-		query += " ORDER BY " + sortCol + " " + order
+		filters := db.MapFilters{
+			Tier:    tierPtr,
+			Search:  search,
+			SortCol: sortCol,
+			Order:   order,
+		}
 
-		rows, err := db.Query(query, args...)
+		maps, err := db.GetMaps(database, filters)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		defer rows.Close()
-
-		maps := []models.Map{}
-		for rows.Next() {
-			var m models.Map
-			if err := rows.Scan(
-				&m.ID,
-				&m.Name,
-				&m.Tier,
-				&m.Year,
-				&m.Completions,
-				&m.HoursPlayed,
-				&m.CompPerHour,
-				&m.Notes,
-			); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			maps = append(maps, m)
-		}
-
-		if err := rows.Err(); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
