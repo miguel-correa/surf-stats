@@ -2,11 +2,12 @@ package db
 
 import (
 	"database/sql"
+	"strings"
 	"surfstats/internal/models"
 )
 
 type MapFilters struct {
-	Tier    *int
+	Tiers   []int
 	Search  string
 	SortCol string
 	Order   string
@@ -20,9 +21,17 @@ func GetMaps(database *sql.DB, filters MapFilters) ([]models.Map, error) {
 			WHERE 1=1
 		`)
 
-	if filters.Tier != nil {
-		query += " AND tier = ?"
-		args = append(args, *filters.Tier)
+	// if filters.Tier != nil {
+	// 	query += " AND tier = ?"
+	// 	args = append(args, *filters.Tier)
+	// }
+
+	if len(filters.Tiers) > 0 {
+		placeholders := strings.Repeat("?,", len(filters.Tiers)-1) + "?"
+		query += " AND tier IN (" + placeholders + ")"
+		for _, tier := range filters.Tiers {
+			args = append(args, tier)
+		}
 	}
 
 	if filters.Search != "" {

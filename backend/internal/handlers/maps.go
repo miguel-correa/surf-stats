@@ -18,11 +18,12 @@ func GetMaps(database *sql.DB) http.HandlerFunc {
 
 		q := r.URL.Query()
 
-		var tierPtr *int
-		if tierStr := q.Get("tier"); tierStr != "" {
-			tier, err := strconv.Atoi(tierStr)
+		var tiers []int
+		tierStrs := q["tier"]
+		for _, t := range tierStrs {
+			tier, err := strconv.Atoi(t)
 			if err == nil && tier >= 1 && tier <= 8 {
-				tierPtr = &tier
+				tiers = append(tiers, tier)
 			}
 		}
 
@@ -40,7 +41,7 @@ func GetMaps(database *sql.DB) http.HandlerFunc {
 		}
 
 		filters := db.MapFilters{
-			Tier:    tierPtr,
+			Tiers:   tiers,
 			Search:  search,
 			SortCol: sortCol,
 			Order:   order,
