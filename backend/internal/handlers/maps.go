@@ -40,11 +40,23 @@ func GetMaps(database *sql.DB) http.HandlerFunc {
 			order = "desc"
 		}
 
+		page, _ := strconv.Atoi(q.Get("page"))
+		if page < 1 {
+			page = 1
+		}
+
+		perPage, _ := strconv.Atoi(q.Get("per_page"))
+		if perPage < 1 || perPage > 100 {
+			perPage = 10
+		}
+
 		filters := db.MapFilters{
 			Tiers:   tiers,
 			Search:  search,
 			SortCol: sortCol,
 			Order:   order,
+			Page:    page,
+			PerPage: perPage,
 		}
 
 		maps, err := db.GetMaps(database, filters)

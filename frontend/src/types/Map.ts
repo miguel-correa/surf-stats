@@ -8,3 +8,11 @@ export interface SurfMap {
     comp_per_hour: number;
     notes: string;
 };
+
+export interface PaginatedMaps {
+    maps: SurfMap[];
+    total: number;
+    page: number;
+    per_page: number;
+    total_pages: number;
+}

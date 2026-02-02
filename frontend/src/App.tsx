@@ -1,6 +1,7 @@
 import { useMaps, type MapFilters, type SortColumn } from "./hooks/useMaps"
 import { MapTable } from "./components/MapTable";
-import { useState } from "react";
+import { Pagination } from "./components/Pagination";
+import { useEffect, useState } from "react";
 import { MapFilters as MapFiltersComponent } from "./components/MapFilters";
 
 function App() {
@@ -10,12 +11,18 @@ function App() {
     sort: 'difficulty',
     order: 'desc'
   })
-  const { maps, isLoading, error } = useMaps(filters);
+  const [page, setPage] = useState(1)
+  const { paginatedData, isLoading, error } = useMaps(filters, { page });
+
+  useEffect(() => {
+    setPage(1);
+  }, [filters.tiers, filters.search, filters.sort, filters.order]);
 
   const handleSort = (column: SortColumn) => {
     const newOrder = filters.sort === column && filters.order === 'desc' ? 'asc' : 'desc';
-    setFilters({ ...filters, sort: column, order: newOrder});
+    setFilters({ ...filters, sort: column, order: newOrder });
   };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
@@ -48,11 +55,15 @@ function App() {
             <div>
               <div className="flex items-center justify-between mb-4">
                 <p className="text-gray-700 font-medium">
-                  Showing <span className="text-blue-600 font-bold">{maps.length}</span> maps
+                  Showing {((page - 1) * 10) + 1}-{Math.min(page * 10, paginatedData?.total || 0)} of {paginatedData?.total || 0} maps
                 </p>
               </div>
-
-              <MapTable maps={maps} sortCol={filters.sort} sortOrder={filters.order} onSort={handleSort}/>
+              <MapTable maps={paginatedData?.maps || []} sortCol={filters.sort} sortOrder={filters.order} onSort={handleSort} />
+              <Pagination
+                currentPage={page}
+                totalPages={paginatedData?.total_pages || 0}
+                onPageChange={setPage}
+              />
             </div>
           )}
         </main>
