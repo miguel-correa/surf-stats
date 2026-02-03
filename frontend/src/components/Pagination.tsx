@@ -18,14 +18,14 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
                 onClick={() => onPageChange(currentPage - 1)}
                 disabled={isFirstPage}
                 className="px-6 py-2 rounded-lg font-medium transition-all
-                            bg-blue-600 text-white hover:bg-blue-700
-                            disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-600
+                            bg-gray-700 text-gray-300 hover:bg-gray-600
+                            disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-700
                             shadow-md hover:shadow-lg">
                 Previous
             </button>
 
             {/* Page indicator */}
-            <span className="px-4 py-2 text-gray-700 font-semibold text-sm bg-white rounded-lg border border-gray-200 shadow-sm">
+            <span className="px-4 py-2 font-semibold text-sm rounded-lg border shadow-sm text-gray-300 bg-gray-800/50 border-gray-700">
                 Page {currentPage} of {totalPages}
             </span>
 
@@ -34,8 +34,8 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
                 onClick={() => onPageChange(currentPage + 1)}
                 disabled={isLastPage}
                 className="px-6 py-2 rounded-lg font-medium transition-all
-                            bg-blue-600 text-white hover:bg-blue-700
-                            disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-600
+                             bg-gray-700 text-gray-300 hover:bg-gray-600
+                            disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:disabled:hover:bg-gray-700
                             shadow-md hover:shadow-lg">
                 Next
             </button>

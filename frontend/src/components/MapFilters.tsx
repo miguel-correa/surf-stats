@@ -20,10 +20,10 @@ export function MapFilters({ filters, onFiltersChange }: MapFiltersProps) {
     }
 
     return (
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 mb-8">
+        <div className="bg-gray-800/50 rounded-xl shadow-lg border border-gray-700 p-6 mb-8">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                 <div className="lg:col-span-2">
-                    <label className="block text-sm font-semibold text-gray-800 mb-3">
+                    <label className="block text-sm font-semibold text-gray-300 mb-3">
                         Filter by Tier
                     </label>
                     <div className="flex flex-wrap gap-2">
@@ -33,8 +33,8 @@ export function MapFilters({ filters, onFiltersChange }: MapFiltersProps) {
                                 className={`
                                     flex items-center gap-2 px-4 py-2 rounded-lg border-2 cursor-pointer transition-all
                                     ${filters.tiers.includes(tier)
-                                        ? 'bg-blue-500 border-blue-500 text-white font-medium'
-                                        : 'bg-white border-gray-300 text-gray-700 hover:border-blue-300 hover:bg-blue-50'
+                                        ? 'bg-gray-600 border-gray-500 text-white font-medium'
+                                        : 'bg-gray-700/50 border-gray-600 text-gray-300 hover:border-gray-500 hover:bg-gray-600'
                                     }
                                 `}
                             >
@@ -51,7 +51,7 @@ export function MapFilters({ filters, onFiltersChange }: MapFiltersProps) {
                 </div>
 
                 <div>
-                    <label htmlFor="search" className="block text-sm font-semibold text-gray-800 mb-3">
+                    <label htmlFor="search" className="block text-sm font-semibold text-gray-300 mb-3">
                         Search Maps
                     </label>
                     <input
@@ -60,7 +60,7 @@ export function MapFilters({ filters, onFiltersChange }: MapFiltersProps) {
                         value={filters.search}
                         onChange={handleSearchChange}
                         placeholder="Type map name..."
-                        className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                        className="w-full px-4 py-2.5 border-2 border-gray-600 rounded-lg bg-gray-700/50 text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                     />
                 </div>
 

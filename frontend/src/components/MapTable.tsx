@@ -9,11 +9,25 @@ interface MapTableProps {
 }
 
 export function MapTable({ maps, sortCol, sortOrder, onSort }: MapTableProps) {
+   const getTierColor = (tier: number) => {
+       const colors: Record<number, string> = {
+           1: 'bg-green-500/20 text-gray-300',
+           2: 'bg-lime-500/20 text-gray-300',
+           3: 'bg-yellow-500/20 text-gray-300',
+           4: 'bg-orange-500/20 text-gray-300',
+           5: 'bg-red-400/20 text-gray-300',
+           6: 'bg-red-500/20 text-gray-300',
+           7: 'bg-red-600/20 text-gray-300',
+           8: 'bg-red-700/20 text-gray-300',
+       };
+       return colors[tier] || 'bg-gray-500/20 text-gray-300';
+   };
+
     const SortableHeader = ({ column, label }: { column: SortColumn, label: string }) => (
         <th
             onClick={() => onSort(column)}
-            className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer
-  hover:bg-gray-200 transition"
+            className="px-6 py-4 text-left text-xs font-bold text-gray-300 uppercase tracking-wider cursor-pointer
+  hover:bg-gray-600/50 transition"
         >
             {label}
             {sortCol === column && (
@@ -24,46 +38,46 @@ export function MapTable({ maps, sortCol, sortOrder, onSort }: MapTableProps) {
 
 
     return (
-        <div className="overflow-x-auto bg-white rounded-xl shadow-lg border border-gray-200">
-            <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+        <div className="overflow-x-auto bg-gray-800/50 rounded-xl shadow-lg border border-gray-700">
+            <table className="min-w-full divide-y divide-gray-700">
+                <thead className="bg-gradient-to-r from-gray-800 to-gray-700">
                     <tr>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Map Name</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Tier</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Year</th>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Map Name</th>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Tier</th>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Year</th>
                         <SortableHeader column="completions" label="Completions"/>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Hours Played</th>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Hours Played</th>
                         <SortableHeader column="difficulty" label="Comp/Hour"/>
                     </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-gray-900/50 divide-y divide-gray-700">
                     {maps.map((map, index) => (
                         <tr
                             key={map.id}
                             className={`
                                 transition-colors
-                                ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
-                                hover:bg-blue-50
+                                ${index % 2 === 0 ? 'bg-transparent' : 'bg-transparent'}
+                                hover:bg-gray-700/50
                             `}
                         >
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-white">
                                 {map.name}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                    Tier {map.tier}
+                                <span className={`inline-flex items-center px-2.5 py-1 rounded text-xs font-medium ${getTierColor(map.tier)}`}>
+                                    {map.tier}
                                 </span>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                                 {map.year}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-medium">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-white font-medium">
                                 {map.completions.toLocaleString()}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                                 {map.hours_played.toFixed(1)}h
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-white">
                                 {map.comp_per_hour.toFixed(2)}
                             </td>
                         </tr>

@@ -25,13 +25,14 @@ function App() {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-gray-800 to-gray-700 p-8">
+      <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle,transparent_0%,rgba(0,0,0,0.5)_100%)]" />
+      <div className="max-w-7xl mx-auto relative">
         <header className="mb-10">
-          <h1 className="text-5xl font-bold text-gray-900 mb-2">
+          <h1 className="text-5xl font-bold text-white mb-2">
             CS:S Surf Stats
           </h1>
-          <p className="text-lg text-gray-600">
+          <p className="text-lg text-gray-300">
             Map statistics from KSF servers
           </p>
         </header>
@@ -53,17 +54,21 @@ function App() {
 
           {!isLoading && !error && (
             <div>
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-gray-700 font-medium">
-                  Showing {((page - 1) * 10) + 1}-{Math.min(page * 10, paginatedData?.total || 0)} of {paginatedData?.total || 0} maps
-                </p>
-              </div>
               <MapTable maps={paginatedData?.maps || []} sortCol={filters.sort} sortOrder={filters.order} onSort={handleSort} />
-              <Pagination
-                currentPage={page}
-                totalPages={paginatedData?.total_pages || 0}
-                onPageChange={setPage}
-              />
+              <div className="flex items-center justify-between mb-4">
+
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-gray-300 font-medium">
+                    Showing {((page - 1) * 10) + 1}-{Math.min(page * 10, paginatedData?.total || 0)} of {paginatedData?.total || 0} maps
+                  </p>
+                </div>
+
+                <Pagination
+                  currentPage={page}
+                  totalPages={paginatedData?.total_pages || 0}
+                  onPageChange={setPage}
+                />
+              </div>
             </div>
           )}
         </main>
