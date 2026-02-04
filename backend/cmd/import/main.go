@@ -92,8 +92,3 @@ func parseInt(s string) int {
 	i, _ := strconv.Atoi(strings.TrimSpace(s))
 	return i
 }
-
-// func parseFloat(s string) float64 {
-// 	i, _ := strconv.ParseFloat(strings.TrimSpace(s), 64)
-// 	return i
-// }
