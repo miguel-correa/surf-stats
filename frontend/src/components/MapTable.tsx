@@ -23,11 +23,10 @@ export function MapTable({ maps, sortCol, sortOrder, onSort }: MapTableProps) {
        return colors[tier] || 'bg-gray-500/20 text-gray-300';
    };
 
-    const SortableHeader = ({ column, label }: { column: SortColumn, label: string }) => (
+    const SortableHeader = ({ column, label, width }: { column: SortColumn, label: string, width?: string }) => (
         <th
             onClick={() => onSort(column)}
-            className="px-6 py-4 text-left text-xs font-bold text-gray-300 uppercase tracking-wider cursor-pointer
-  hover:bg-gray-600/50 transition"
+            className={`${width || ''} px-6 py-4 text-left text-xs font-bold text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-600/50 transition"`}
         >
             {label}
             {sortCol === column && (
@@ -39,15 +38,15 @@ export function MapTable({ maps, sortCol, sortOrder, onSort }: MapTableProps) {
 
     return (
         <div className="overflow-x-auto bg-gray-800/50 rounded-xl shadow-lg border border-gray-700">
-            <table className="min-w-full divide-y divide-gray-700">
+            <table className="min-w-full divide-y divide-gray-700 table-fixed">
                 <thead className="bg-gradient-to-r from-gray-800 to-gray-700">
                     <tr>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Map Name</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Tier</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Year</th>
-                        <SortableHeader column="completions" label="Completions"/>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Hours Played</th>
-                        <SortableHeader column="difficulty" label="Comp/Hour"/>
+                        <th className="w-[40%] px-6 py-4 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Map Name</th>
+                        <th className="w-[10%] px-6 py-4 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Tier</th>
+                        <th className="w-[10%] px-6 py-4 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Year</th>
+                        <SortableHeader column="completions" label="Completions" width="w-[15%]"/>
+                        <th className="w-[12%] px-6 py-4 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Hours Played</th>
+                        <SortableHeader column="difficulty" label="Comp/Hour" width="w-[13%]"/>
                     </tr>
                 </thead>
                 <tbody className="bg-gray-900/50 divide-y divide-gray-700">

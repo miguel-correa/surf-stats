@@ -30,7 +30,7 @@ function App() {
       <div className="max-w-7xl mx-auto relative">
         <header className="mb-10">
           <h1 className="text-5xl font-bold text-white mb-2">
-            CS:S Surf Stats
+            Billy's Surf Stats Extravaganza
           </h1>
           <p className="text-lg text-gray-300">
             Map statistics from KSF servers
