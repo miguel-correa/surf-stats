@@ -18,7 +18,7 @@ func main() {
 
 	filePath := os.Args[1]
 
-	db, err := sql.Open("sqlite", "surfstats.db")
+	db, err := sql.Open("sqlite", "/app/data/surfstats.db")
 	if err != nil {
 		log.Fatal(err)
 	}

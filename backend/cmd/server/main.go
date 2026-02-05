@@ -23,7 +23,7 @@ func corsMiddleware(next http.Handler) http.Handler {
 }
 
 func main() {
-	database := db.Open("surfstats.db")
+	database := db.Open("/app/data/surfstats.db")
 
 	mux := http.NewServeMux()
 

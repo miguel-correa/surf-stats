@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { SurfMap, PaginatedMaps } from '../types/Map';
+import type { PaginatedMaps } from '../types/Map';
 
 export type SortColumn = 'difficulty' | 'completions';
 
