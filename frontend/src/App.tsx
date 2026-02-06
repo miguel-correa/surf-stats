@@ -55,20 +55,13 @@ function App() {
           {!isLoading && !error && (
             <div>
               <MapTable maps={paginatedData?.maps || []} sortCol={filters.sort} sortOrder={filters.order} onSort={handleSort} />
-              <div className="flex items-center justify-between mb-4">
-
-                <div className="flex items-center justify-between mb-4">
-                  <p className="text-gray-300 font-medium">
-                    Showing {((page - 1) * 10) + 1}-{Math.min(page * 10, paginatedData?.total || 0)} of {paginatedData?.total || 0} maps
-                  </p>
-                </div>
-
-                <Pagination
-                  currentPage={page}
-                  totalPages={paginatedData?.total_pages || 0}
-                  onPageChange={setPage}
-                />
-              </div>
+              <Pagination
+                currentPage={page}
+                perPage={10}
+                totalItems={paginatedData?.total || 0}
+                label="maps"
+                onPageChange={setPage}
+              />
             </div>
           )}
         </main>
