@@ -23,6 +23,8 @@ COPY --from=builder /app/migrations ./migrations
 
 RUN mkdir -p /app/data
 
+ENV DB_PATH=/app/data/surfstats.db
+
 EXPOSE 8080
 
 CMD ["./server"]

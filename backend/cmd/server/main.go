@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 	"surfstats/internal/db"
 	"surfstats/internal/handlers"
 )
@@ -23,7 +24,11 @@ func corsMiddleware(next http.Handler) http.Handler {
 }
 
 func main() {
-	database := db.Open("/app/data/surfstats.db")
+	dbPath := os.Getenv("DB_PATH")
+	if dbPath == "" {
+		dbPath = "data/surfstats.db"
+	}
+	database := db.Open(dbPath)
 
 	mux := http.NewServeMux()
 
