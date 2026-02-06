@@ -33,8 +33,8 @@ export function MapFilters({ filters, onFiltersChange }: MapFiltersProps) {
                                 className={`
                                     flex items-center gap-2 px-4 py-2 rounded-lg border-2 cursor-pointer transition-all
                                     ${filters.tiers.includes(tier)
-                                        ? 'bg-cyan-500 border-cyan-400 text-gray-900 font-semibold shadow-lg shadow-cyan-500/20 hover:bg-cyan-400 hover:border-cyan-300 active:scale-95'
-      : 'bg-gray-700/50 border-gray-600 text-gray-300 hover:border-gray-500 hover:bg-gray-600 active:scale-95'                                    }
+                                        ? 'bg-indigo-500 border-indigo-400 text-white font-semibold shadow-lg shadow-indigo-500/20 hover:bg-indigo-400 hover:border-indigo-300 active:scale-95'
+                                        : 'bg-gray-700/50 border-gray-600 text-gray-300 hover:border-gray-500 hover:bg-gray-600 active:scale-95'}
                                 `}
                             >
                                 <input
@@ -59,7 +59,7 @@ export function MapFilters({ filters, onFiltersChange }: MapFiltersProps) {
                         value={filters.search}
                         onChange={handleSearchChange}
                         placeholder="Type map name..."
-                        className="w-full px-4 py-2.5 border-2 border-gray-600 rounded-lg bg-gray-700/50 text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                        className="w-full px-4 py-2.5 border-2 border-gray-600 rounded-lg bg-gray-700/50 text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
                     />
                 </div>
 
