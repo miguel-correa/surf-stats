@@ -33,9 +33,8 @@ export function MapFilters({ filters, onFiltersChange }: MapFiltersProps) {
                                 className={`
                                     flex items-center gap-2 px-4 py-2 rounded-lg border-2 cursor-pointer transition-all
                                     ${filters.tiers.includes(tier)
-                                        ? 'bg-gray-600 border-gray-500 text-white font-medium'
-                                        : 'bg-gray-700/50 border-gray-600 text-gray-300 hover:border-gray-500 hover:bg-gray-600'
-                                    }
+                                        ? 'bg-cyan-500 border-cyan-400 text-gray-900 font-semibold shadow-lg shadow-cyan-500/20 hover:bg-cyan-400 hover:border-cyan-300 active:scale-95'
+      : 'bg-gray-700/50 border-gray-600 text-gray-300 hover:border-gray-500 hover:bg-gray-600 active:scale-95'                                    }
                                 `}
                             >
                                 <input
