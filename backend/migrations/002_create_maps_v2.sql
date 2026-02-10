@@ -4,7 +4,7 @@ CREATE TABLE
         ksf_map_id INTEGER UNIQUE NOT NULL,
         name TEXT UNIQUE NOT NULL,
         tier INTEGER NOT NULL,
-        year INTEGER,
+        added INTEGER,
         completions INTEGER, -- from totalRanks (main zone)
         playtime_seconds INTEGER, -- raw seconds from scrape
         comp_per_hour REAL,
