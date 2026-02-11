@@ -5,9 +5,9 @@ CREATE TABLE
         name TEXT UNIQUE NOT NULL,
         tier INTEGER NOT NULL,
         added INTEGER,
-        completions INTEGER, -- from totalRanks (main zone)
+        completions INTEGER DEFAULT 0, -- from totalRanks (main zone)
         playtime_seconds INTEGER, -- raw seconds from scrape
-        comp_per_hour REAL,
+        comp_per_hour REAL DEFAULT 0,
         notes TEXT,
         bonus INTEGER DEFAULT 0, -- from b_count
         linear INTEGER DEFAULT 0, -- from isLinear (0/1)
