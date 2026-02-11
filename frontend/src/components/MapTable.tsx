@@ -68,13 +68,13 @@ export function MapTable({ maps, sortCol, sortOrder, onSort }: MapTableProps) {
                                 </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                                <td>{new Date(map.year * 1000).getUTCFullYear()}</td>
+                                {new Date(map.added * 1000).getUTCFullYear()}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-white font-medium">
                                 {map.completions.toLocaleString()}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                                  <td>{(map.playtime_seconds / 3600).toFixed(1)}h</td>
+                                {(map.playtime_seconds / 3600).toFixed(1)}h
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-white">
                                 {map.comp_per_hour.toFixed(2)}
