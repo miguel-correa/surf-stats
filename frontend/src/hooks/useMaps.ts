@@ -33,7 +33,7 @@ export function useMaps(filters: MapFilters,
                 params.append('page', page.toString())
                 params.append('per_page', perPage.toString())
 
-                const response = await fetch(`/api/maps?${params}`)
+                const response = await fetch(`/api/v2/maps?${params}`)
 
                 if (!response.ok) {
                     throw new Error('Failed to fetch maps');

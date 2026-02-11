@@ -9,19 +9,19 @@ interface MapTableProps {
 }
 
 export function MapTable({ maps, sortCol, sortOrder, onSort }: MapTableProps) {
-   const getTierColor = (tier: number) => {
-       const colors: Record<number, string> = {
-           1: 'bg-green-500/20 text-gray-300',
-           2: 'bg-lime-500/20 text-gray-300',
-           3: 'bg-yellow-500/20 text-gray-300',
-           4: 'bg-orange-500/20 text-gray-300',
-           5: 'bg-red-400/20 text-gray-300',
-           6: 'bg-red-500/20 text-gray-300',
-           7: 'bg-red-600/20 text-gray-300',
-           8: 'bg-red-700/20 text-gray-300',
-       };
-       return colors[tier] || 'bg-gray-500/20 text-gray-300';
-   };
+    const getTierColor = (tier: number) => {
+        const colors: Record<number, string> = {
+            1: 'bg-green-500/20 text-gray-300',
+            2: 'bg-lime-500/20 text-gray-300',
+            3: 'bg-yellow-500/20 text-gray-300',
+            4: 'bg-orange-500/20 text-gray-300',
+            5: 'bg-red-400/20 text-gray-300',
+            6: 'bg-red-500/20 text-gray-300',
+            7: 'bg-red-600/20 text-gray-300',
+            8: 'bg-red-700/20 text-gray-300',
+        };
+        return colors[tier] || 'bg-gray-500/20 text-gray-300';
+    };
 
     const SortableHeader = ({ column, label, width }: { column: SortColumn, label: string, width?: string }) => (
         <th
@@ -44,9 +44,9 @@ export function MapTable({ maps, sortCol, sortOrder, onSort }: MapTableProps) {
                         <th className="w-[40%] px-6 py-4 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Map Name</th>
                         <th className="w-[10%] px-6 py-4 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Tier</th>
                         <th className="w-[10%] px-6 py-4 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Year</th>
-                        <SortableHeader column="completions" label="Completions" width="w-[15%]"/>
+                        <SortableHeader column="completions" label="Completions" width="w-[15%]" />
                         <th className="w-[12%] px-6 py-4 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Hours Played</th>
-                        <SortableHeader column="difficulty" label="Comp/Hour" width="w-[13%]"/>
+                        <SortableHeader column="difficulty" label="Comp/Hour" width="w-[13%]" />
                     </tr>
                 </thead>
                 <tbody className="bg-gray-900/50 divide-y divide-gray-700">
@@ -68,13 +68,13 @@ export function MapTable({ maps, sortCol, sortOrder, onSort }: MapTableProps) {
                                 </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                                {map.year}
+                                <td>{new Date(map.year * 1000).getUTCFullYear()}</td>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-white font-medium">
                                 {map.completions.toLocaleString()}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                                {map.hours_played.toFixed(1)}h
+                                  <td>{(map.playtime_seconds / 3600).toFixed(1)}h</td>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-white">
                                 {map.comp_per_hour.toFixed(2)}

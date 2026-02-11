@@ -4,7 +4,7 @@ export interface SurfMap {
     tier: number;
     year: number;
     completions: number;
-    hours_played: number;
+    playtime_seconds: number;
     comp_per_hour: number;
     notes: string;
 };
