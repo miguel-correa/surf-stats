@@ -78,14 +78,5 @@ func (s *KSFScraper) FetchMaps(path string) ([]Map, error) {
 		return nil, fmt.Errorf("failed to parse maps JSON: %w", err)
 	}
 
-	fmt.Printf("Found %d maps\n", len(response.Maps))
-
-	for i, m := range response.Maps {
-		println(m.Tier)
-		if i > 2 {
-			break
-		}
-	}
-
-	return response.Maps, err
+	return response.Maps, nil
 }

@@ -18,7 +18,7 @@ type MapV2 struct {
 	KSFMapID        int       `json:"ksf_map_id"`
 	Name            string    `json:"name"`
 	Tier            int       `json:"tier"`
-	Added           int       `json:"year"`
+	Added           int       `json:"added"`
 	Completions     int       `json:"completions"`
 	PlaytimeSeconds int       `json:"playtime_seconds"`
 	CompPerHour     float64   `json:"comp_per_hour"`
