@@ -245,8 +245,8 @@ func UpsertMaps(database *sql.DB, maps []maps.Map) error {
 		_, err := database.Exec(`
 			INSERT INTO maps_v2 (name, ksf_map_id, tier, added, playtime_seconds, bonus, linear)
 			VALUES (?, ?, ?, ?, ?, ?, ?)
-			ON CONFLICT(name) DO UPDATE SET
-			  ksf_map_id = excluded.ksf_map_id,
+			ON CONFLICT(ksf_map_id) DO UPDATE SET
+			  name = excluded.name,
 			  tier = excluded.tier,
 			  added = excluded.added,
 			  playtime_seconds = excluded.playtime_seconds,
