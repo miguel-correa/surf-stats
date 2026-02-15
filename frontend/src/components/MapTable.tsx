@@ -60,7 +60,12 @@ export function MapTable({ maps, sortCol, sortOrder, onSort }: MapTableProps) {
                             `}
                         >
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-white">
-                                {map.name}
+                                <a href={`https://ksf.surf/maps/${map.name}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-white/90 underline decoration-white/30 underline-offset-2 hover:text-white hover:decoration-white/70 transition">
+                                    {map.name}
+                                </a>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                                 <span className={`inline-flex items-center px-2.5 py-1 rounded text-xs font-medium ${getTierColor(map.tier)}`}>
