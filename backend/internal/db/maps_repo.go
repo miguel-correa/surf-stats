@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"strings"
 	"surfstats/internal/models"
 	"surfstats/internal/scrapers/maps"
@@ -266,6 +267,27 @@ func UpsertMaps(database *sql.DB, maps []maps.Map) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func UpdateMapCompletionsByMapID(database *sql.DB, ksfMapID int, completions int) error {
+	_, err := database.Exec(
+		`UPDATE maps_v2
+		 SET
+		 	completions = ?,
+			comp_per_hour = CASE
+				WHEN playtime_seconds > 0 THEN (? * 3600.0) / playtime_seconds
+				ELSE 0
+			END,
+			updated_at = CURRENT_TIMESTAMP
+		WHERE ksf_map_id = ?`,
+		completions, completions, ksfMapID,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to update completions for map: %v", err)
 	}
 
 	return nil
