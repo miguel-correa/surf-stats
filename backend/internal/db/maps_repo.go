@@ -273,22 +273,37 @@ func UpsertMaps(database *sql.DB, maps []maps.Map) error {
 }
 
 func UpdateMapCompletionsByMapID(database *sql.DB, ksfMapID int, completions int) error {
-	_, err := database.Exec(
-		`UPDATE maps
-		 SET
-			completions = ?,
-			comp_per_hour = CASE
-				WHEN playtime_seconds > 0 THEN (? * 3600.0) / playtime_seconds
-				ELSE 0
-			END,
-			updated_at = CURRENT_TIMESTAMP
-		WHERE ksf_map_id = ?`,
-		completions, completions, ksfMapID,
-	)
-
+	tx, err := database.Begin()
 	if err != nil {
-		return fmt.Errorf("failed to update completions for map: %v", err)
+		return fmt.Errorf("failed to begin tx: %w", err)
+	}
+	defer tx.Rollback()
+
+	if err := UpdateMapCompletionsByMapIDTx(tx, ksfMapID, completions); err != nil {
+		return err
 	}
 
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit tx: %w", err)
+	}
+	return nil
+}
+
+func UpdateMapCompletionsByMapIDTx(tx *sql.Tx, ksfMapID int, completions int) error {
+	_, err := tx.Exec(
+		`UPDATE maps
+		 SET
+            completions = ?,
+            comp_per_hour = CASE
+            	WHEN playtime_seconds > 0 THEN (? * 3600.0) / playtime_seconds
+            	ELSE 0
+            END,
+            updated_at = CURRENT_TIMESTAMP
+         WHERE ksf_map_id = ?`,
+		completions, completions, ksfMapID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update completions for map_id=%d: %w", ksfMapID, err)
+	}
 	return nil
 }
