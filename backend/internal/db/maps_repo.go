@@ -117,7 +117,7 @@ func GetMapsV2(database *sql.DB, filters MapFilters) (PaginatedMapsV2, error) {
 				bonus,
 				linear,
 				updated_at
-			FROM maps_v2
+			FROM maps
 			WHERE 1=1
 		`)
 
@@ -214,7 +214,7 @@ func GetMapsCountV2(database *sql.DB, filters MapFilters) (int, error) {
 	args := []any{}
 	query := (`
 			SELECT COUNT(*)
-			FROM maps_v2
+			FROM maps
 			WHERE 1=1
 		`)
 
@@ -244,7 +244,7 @@ func UpsertMaps(database *sql.DB, maps []maps.Map) error {
 
 	for _, row := range maps {
 		_, err := database.Exec(`
-			INSERT INTO maps_v2 (name, ksf_map_id, tier, added, playtime_seconds, bonus, linear)
+			INSERT INTO maps (name, ksf_map_id, tier, added, playtime_seconds, bonus, linear)
 			VALUES (?, ?, ?, ?, ?, ?, ?)
 			ON CONFLICT(ksf_map_id) DO UPDATE SET
 			  name = excluded.name,
@@ -274,7 +274,7 @@ func UpsertMaps(database *sql.DB, maps []maps.Map) error {
 
 func UpdateMapCompletionsByMapID(database *sql.DB, ksfMapID int, completions int) error {
 	_, err := database.Exec(
-		`UPDATE maps_v2
+		`UPDATE maps
 		 SET
 			completions = ?,
 			comp_per_hour = CASE
