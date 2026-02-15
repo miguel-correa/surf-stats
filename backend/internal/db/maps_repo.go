@@ -276,7 +276,7 @@ func UpdateMapCompletionsByMapID(database *sql.DB, ksfMapID int, completions int
 	_, err := database.Exec(
 		`UPDATE maps_v2
 		 SET
-		 	completions = ?,
+			completions = ?,
 			comp_per_hour = CASE
 				WHEN playtime_seconds > 0 THEN (? * 3600.0) / playtime_seconds
 				ELSE 0
