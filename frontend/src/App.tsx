@@ -8,6 +8,7 @@ function App() {
   const [filters, setFilters] = useState<MapFilters>({
     tiers: [],
     search: '',
+    linear: 'all',
     sort: 'difficulty',
     order: 'desc'
   })
@@ -16,7 +17,7 @@ function App() {
 
   useEffect(() => {
     setPage(1);
-  }, [filters.tiers, filters.search, filters.sort, filters.order]);
+  }, [filters.tiers, filters.search, filters.linear, filters.sort, filters.order]);
 
   const handleSort = (column: SortColumn) => {
     const newOrder = filters.sort === column && filters.order === 'desc' ? 'asc' : 'desc';

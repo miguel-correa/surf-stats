@@ -6,6 +6,7 @@ export type SortColumn = 'difficulty' | 'completions';
 export interface MapFilters {
     tiers: number[];
     search: string;
+    linear: 'all' | 'linear' | 'staged';
     sort: SortColumn;
     order: 'asc' | 'desc';
 }
@@ -27,6 +28,8 @@ export function useMaps(filters: MapFilters,
                 const params = new URLSearchParams();
                 filters.tiers.forEach(t => params.append('tier', t.toString()));
                 if (filters.search) params.append('search', filters.search);
+                if (filters.linear === 'linear') params.append('linear', '1');
+                if (filters.linear === 'staged') params.append('linear', '0');
                 params.append('sort', filters.sort)
                 params.append('order', filters.order)
                 const {page = 1, perPage = 10} = options;
@@ -49,7 +52,7 @@ export function useMaps(filters: MapFilters,
         }
 
         fetchMaps();
-    }, [filters.tiers, filters.search, filters.sort, filters.order, options.page, options.perPage])
+    }, [filters.tiers, filters.search, filters.linear, filters.sort, filters.order, options.page, options.perPage])
 
     return { paginatedData, isLoading, error }
 }
