@@ -6,6 +6,7 @@ export interface SurfMap {
     completions: number;
     playtime_seconds: number;
     comp_per_hour: number;
+    linear: number;
     notes: string;
 };
 

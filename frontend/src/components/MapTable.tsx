@@ -35,6 +35,17 @@ export function MapTable({ maps, sortCol, sortOrder, onSort }: MapTableProps) {
         </th>
     );
 
+    const MapTypeBadge = ({ linear }: { linear: number }) => {
+        const isLinear = linear === 1;
+        return (
+            <span
+                className="ml-2 inline-flex items-center rounded-full bg-white/5 px-2 py-0.5 text-xs font-medium text-gray-200 ring-1 ring-white/15"
+            >
+                {isLinear ? 'Linear' : 'Staged'}
+            </span>
+        );
+    };
+
 
     return (
         <div className="overflow-x-auto bg-gray-800/50 rounded-xl shadow-lg border border-gray-700">
@@ -60,12 +71,15 @@ export function MapTable({ maps, sortCol, sortOrder, onSort }: MapTableProps) {
                             `}
                         >
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-white">
-                                <a href={`https://ksf.surf/maps/${map.name}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-white/90 underline decoration-white/30 underline-offset-2 hover:text-white hover:decoration-white/70 transition">
-                                    {map.name}
-                                </a>
+                                <span className="flex items-center justify-between gap-3">
+                                    <a href={`https://ksf.surf/maps/${map.name}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-white/90 underline decoration-white/30 underline-offset-2 hover:text-white hover:decoration-white/70 transition">
+                                        {map.name}
+                                    </a>
+                                    <MapTypeBadge linear={map.linear} />
+                                </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                                 <span className={`inline-flex items-center px-2.5 py-1 rounded text-xs font-medium ${getTierColor(map.tier)}`}>
