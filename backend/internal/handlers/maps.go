@@ -27,7 +27,16 @@ func GetMaps(database *sql.DB) http.HandlerFunc {
 			}
 		}
 
-		search := q.Get("search")
+			search := q.Get("search")
+
+			var linearFilter *int
+			linear := q.Get("linear")
+			if linear == "0" || linear == "1" {
+				v, err := strconv.Atoi(linear)
+				if err == nil {
+					linearFilter = &v
+				}
+			}
 
 		sortKey := q.Get("sort")
 		sortCol, ok := allowedSortCols[sortKey]
@@ -50,12 +59,13 @@ func GetMaps(database *sql.DB) http.HandlerFunc {
 			perPage = 10
 		}
 
-		filters := db.MapFilters{
-			Tiers:   tiers,
-			Search:  search,
-			SortCol: sortCol,
-			Order:   order,
-			Page:    page,
+			filters := db.MapFilters{
+				Tiers:   tiers,
+				Search:  search,
+				Linear:  linearFilter,
+				SortCol: sortCol,
+				Order:   order,
+				Page:    page,
 			PerPage: perPage,
 		}
 
@@ -88,7 +98,16 @@ func GetMapsV2(database *sql.DB) http.HandlerFunc {
 			}
 		}
 
-		search := q.Get("search")
+			search := q.Get("search")
+
+			var linearFilter *int
+			linear := q.Get("linear")
+			if linear == "0" || linear == "1" {
+				v, err := strconv.Atoi(linear)
+				if err == nil {
+					linearFilter = &v
+				}
+			}
 
 		sortKey := q.Get("sort")
 		sortCol, ok := allowedSortCols[sortKey]
@@ -111,12 +130,13 @@ func GetMapsV2(database *sql.DB) http.HandlerFunc {
 			perPage = 10
 		}
 
-		filters := db.MapFilters{
-			Tiers:   tiers,
-			Search:  search,
-			SortCol: sortCol,
-			Order:   order,
-			Page:    page,
+			filters := db.MapFilters{
+				Tiers:   tiers,
+				Search:  search,
+				Linear:  linearFilter,
+				SortCol: sortCol,
+				Order:   order,
+				Page:    page,
 			PerPage: perPage,
 		}
 

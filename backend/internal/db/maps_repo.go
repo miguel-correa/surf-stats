@@ -11,6 +11,7 @@ import (
 type MapFilters struct {
 	Tiers   []int
 	Search  string
+	Linear  *int
 	SortCol string
 	Order   string
 	Page    int
@@ -54,6 +55,11 @@ func GetMaps(database *sql.DB, filters MapFilters) (PaginatedMaps, error) {
 	if filters.Search != "" {
 		query += " AND name LIKE ?"
 		args = append(args, "%"+filters.Search+"%")
+	}
+
+	if filters.Linear != nil {
+		query += " AND linear = ?"
+		args = append(args, *filters.Linear)
 	}
 
 	query += " ORDER BY " + filters.SortCol + " " + filters.Order
@@ -132,6 +138,11 @@ func GetMapsV2(database *sql.DB, filters MapFilters) (PaginatedMapsV2, error) {
 	if filters.Search != "" {
 		query += " AND name LIKE ?"
 		args = append(args, "%"+filters.Search+"%")
+	}
+
+	if filters.Linear != nil {
+		query += " AND linear = ?"
+		args = append(args, *filters.Linear)
 	}
 
 	query += " ORDER BY " + filters.SortCol + " " + filters.Order
