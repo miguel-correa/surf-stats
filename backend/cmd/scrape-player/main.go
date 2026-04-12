@@ -2,21 +2,20 @@ package main
 
 import (
 	"log"
+	"os"
 	"surfstats/internal/db"
-	"surfstats/internal/scrapers/players"
+	"surfstats/internal/jobs"
 )
 
 func main() {
+	if len(os.Args) < 2 {
+		log.Fatal("usage: go run ./cmd/scrape-player <steam_id>")
+	}
+
 	database := db.Open("data/surfstats.db")
+	defer database.Close()
 
-	scraper := players.NewKSFScraper()
-	mapID, comps, err := scraper.FetchMapCompletionsFromPlayerRecord("STEAM_0:1:75949009", "surf_aircontrol_ksf")
-	if err != nil {
+	if err := jobs.RunPlayerRecordsIngestion(database, os.Args[1]); err != nil {
 		log.Fatal(err)
 	}
-	if err := db.UpdateMapCompletionsByMapID(database, mapID, comps); err != nil {
-		log.Fatal(err)
-	}
-
-	println(comps)
 }

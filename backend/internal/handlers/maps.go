@@ -27,6 +27,15 @@ func GetMaps(database *sql.DB) http.HandlerFunc {
 		}
 
 		search := q.Get("search")
+		steamID := q.Get("steam_id")
+
+		completion := db.CompletionAll
+		switch q.Get("completion_status") {
+		case string(db.CompletionCompleted):
+			completion = db.CompletionCompleted
+		case string(db.CompletionIncomplete):
+			completion = db.CompletionIncomplete
+		}
 
 		var linearFilter *int
 		linear := q.Get("linear")
@@ -59,13 +68,15 @@ func GetMaps(database *sql.DB) http.HandlerFunc {
 		}
 
 		filters := db.MapFilters{
-			Tiers:   tiers,
-			Search:  search,
-			Linear:  linearFilter,
-			SortCol: sortCol,
-			Order:   order,
-			Page:    page,
-			PerPage: perPage,
+			Tiers:      tiers,
+			Search:     search,
+			Linear:     linearFilter,
+			SteamID:    steamID,
+			Completion: completion,
+			SortCol:    sortCol,
+			Order:      order,
+			Page:       page,
+			PerPage:    perPage,
 		}
 
 		maps, err := db.GetMaps(database, filters)

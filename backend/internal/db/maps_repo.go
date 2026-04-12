@@ -9,14 +9,24 @@ import (
 )
 
 type MapFilters struct {
-	Tiers   []int
-	Search  string
-	Linear  *int
-	SortCol string
-	Order   string
-	Page    int
-	PerPage int
+	Tiers      []int
+	Search     string
+	Linear     *int
+	SteamID    string
+	Completion CompletionFilter
+	SortCol    string
+	Order      string
+	Page       int
+	PerPage    int
 }
+
+type CompletionFilter string
+
+const (
+	CompletionAll        CompletionFilter = "all"
+	CompletionCompleted  CompletionFilter = "completed"
+	CompletionIncomplete CompletionFilter = "incomplete"
+)
 
 type PaginatedMaps struct {
 	Maps       []models.Map `json:"maps"`
@@ -30,42 +40,7 @@ func GetMaps(database *sql.DB, filters MapFilters) (PaginatedMaps, error) {
 	var paginatedMaps PaginatedMaps
 
 	args := []any{}
-	query := (`
-			SELECT 
-				id, 
-				ksf_map_id, 
-				name, 
-				tier, 
-				added, 
-				completions, 
-				playtime_seconds,
-				comp_per_hour,
-				coalesce(notes, ''),
-				bonus,
-				linear,
-				updated_at
-			FROM maps
-			WHERE 1=1
-		`)
-
-	if len(filters.Tiers) > 0 {
-		placeholders := strings.Repeat("?,", len(filters.Tiers)-1) + "?"
-		query += " AND tier IN (" + placeholders + ")"
-		for _, tier := range filters.Tiers {
-			args = append(args, tier)
-		}
-	}
-
-	if filters.Search != "" {
-		query += " AND name LIKE ?"
-		args = append(args, "%"+filters.Search+"%")
-	}
-
-	if filters.Linear != nil {
-		query += " AND linear = ?"
-		args = append(args, *filters.Linear)
-	}
-
+	query := buildMapsSelectQuery(filters, &args)
 	query += " ORDER BY " + filters.SortCol + " " + filters.Order
 	query += " LIMIT ? OFFSET ?"
 	args = append(args, filters.PerPage)
@@ -79,6 +54,9 @@ func GetMaps(database *sql.DB, filters MapFilters) (PaginatedMaps, error) {
 
 	for rows.Next() {
 		var m models.Map
+		var playerBestTime sql.NullInt64
+		var playerRank sql.NullInt64
+		var completed sql.NullInt64
 		if err := rows.Scan(
 			&m.ID,
 			&m.KSFMapID,
@@ -92,8 +70,23 @@ func GetMaps(database *sql.DB, filters MapFilters) (PaginatedMaps, error) {
 			&m.Bonus,
 			&m.Linear,
 			&m.UpdatedAt,
+			&playerBestTime,
+			&playerRank,
+			&completed,
 		); err != nil {
 			return PaginatedMaps{}, err
+		}
+		if playerBestTime.Valid {
+			value := int(playerBestTime.Int64)
+			m.PlayerBestTimeMS = &value
+		}
+		if playerRank.Valid {
+			value := int(playerRank.Int64)
+			m.PlayerRank = &value
+		}
+		if completed.Valid {
+			value := completed.Int64 != 0
+			m.Completed = &value
 		}
 		paginatedMaps.Maps = append(paginatedMaps.Maps, m)
 	}
@@ -113,6 +106,106 @@ func GetMaps(database *sql.DB, filters MapFilters) (PaginatedMaps, error) {
 	return paginatedMaps, nil
 }
 
+func buildMapsSelectQuery(filters MapFilters, args *[]any) string {
+	query := `
+			SELECT 
+				id, 
+				ksf_map_id, 
+				name, 
+				tier, 
+				added, 
+				completions, 
+				playtime_seconds,
+				comp_per_hour,
+				coalesce(notes, ''),
+				bonus,
+				linear,
+				updated_at`
+
+	if filters.SteamID != "" {
+		query += `,
+				(
+					SELECT pr.surf_time_ms
+					FROM player_map_records pr
+					WHERE pr.steam_id = ? AND pr.ksf_map_id = maps.ksf_map_id
+					ORDER BY pr.surf_time_ms ASC, pr.id DESC
+					LIMIT 1
+				) AS player_best_time_ms,
+				(
+					SELECT pr.rank
+					FROM player_map_records pr
+					WHERE pr.steam_id = ? AND pr.ksf_map_id = maps.ksf_map_id
+					ORDER BY pr.surf_time_ms ASC, pr.id DESC
+					LIMIT 1
+				) AS player_rank,
+				CASE
+					WHEN EXISTS (
+						SELECT 1
+						FROM player_map_records pr
+						WHERE pr.steam_id = ? AND pr.ksf_map_id = maps.ksf_map_id
+					) THEN 1
+					ELSE 0
+				END AS completed`
+		*args = append(*args, filters.SteamID, filters.SteamID, filters.SteamID)
+	} else {
+		query += `,
+				NULL AS player_best_time_ms,
+				NULL AS player_rank,
+				NULL AS completed`
+	}
+
+	query += `
+			FROM maps
+			WHERE 1=1
+		`
+	query += buildMapsWhereClause(filters, args)
+
+	return query
+}
+
+func buildMapsWhereClause(filters MapFilters, args *[]any) string {
+	query := ""
+
+	if len(filters.Tiers) > 0 {
+		placeholders := strings.Repeat("?,", len(filters.Tiers)-1) + "?"
+		query += " AND tier IN (" + placeholders + ")"
+		for _, tier := range filters.Tiers {
+			*args = append(*args, tier)
+		}
+	}
+
+	if filters.Search != "" {
+		query += " AND name LIKE ?"
+		*args = append(*args, "%"+filters.Search+"%")
+	}
+
+	if filters.Linear != nil {
+		query += " AND linear = ?"
+		*args = append(*args, *filters.Linear)
+	}
+
+	if filters.SteamID != "" {
+		switch filters.Completion {
+		case CompletionCompleted:
+			query += ` AND EXISTS (
+				SELECT 1
+				FROM player_map_records pr
+				WHERE pr.steam_id = ? AND pr.ksf_map_id = maps.ksf_map_id
+			)`
+			*args = append(*args, filters.SteamID)
+		case CompletionIncomplete:
+			query += ` AND NOT EXISTS (
+				SELECT 1
+				FROM player_map_records pr
+				WHERE pr.steam_id = ? AND pr.ksf_map_id = maps.ksf_map_id
+			)`
+			*args = append(*args, filters.SteamID)
+		}
+	}
+
+	return query
+}
+
 func GetMapsCount(database *sql.DB, filters MapFilters) (int, error) {
 	args := []any{}
 	query := (`
@@ -120,26 +213,8 @@ func GetMapsCount(database *sql.DB, filters MapFilters) (int, error) {
 			FROM maps
 			WHERE 1=1
 		`)
-
-	if len(filters.Tiers) > 0 {
-		placeholders := strings.Repeat("?,", len(filters.Tiers)-1) + "?"
-		query += " AND tier IN (" + placeholders + ")"
-		for _, tier := range filters.Tiers {
-			args = append(args, tier)
-		}
-	}
-
-	if filters.Search != "" {
-		query += " AND name LIKE ?"
-		args = append(args, "%"+filters.Search+"%")
-	}
-
+	query += buildMapsWhereClause(filters, &args)
 	var count int
-	if filters.Linear != nil {
-		query += " AND linear = ?"
-		args = append(args, *filters.Linear)
-	}
-
 	err := database.QueryRow(query, args...).Scan(&count)
 	if err != nil {
 		return 0, err
