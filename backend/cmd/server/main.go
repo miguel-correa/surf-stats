@@ -38,7 +38,6 @@ func main() {
 	})
 
 	mux.Handle("/api/maps", handlers.GetMaps(database))
-	mux.Handle("/api/v2/maps", handlers.GetMapsV2(database))
 
 	log.Println("Server running on :8080")
 	log.Fatal(http.ListenAndServe(":8080", corsMiddleware(mux)))
