@@ -10,6 +10,9 @@ RUN go mod download
 COPY . .
 
 RUN CGO_ENABLED=1 GOOS=linux go build -o server ./cmd/server
+RUN CGO_ENABLED=1 GOOS=linux go build -o scrape-maps ./cmd/scrape-maps
+RUN CGO_ENABLED=1 GOOS=linux go build -o scrape-player ./cmd/scrape-player
+RUN CGO_ENABLED=1 GOOS=linux go build -o weekly-ingest ./cmd/weekly-ingest
 
 FROM alpine:latest
 
@@ -18,6 +21,9 @@ RUN apk add --no-cache ca-certificates sqlite-libs
 WORKDIR /app
 
 COPY --from=builder /app/server .
+COPY --from=builder /app/scrape-maps .
+COPY --from=builder /app/scrape-player .
+COPY --from=builder /app/weekly-ingest .
 
 COPY --from=builder /app/migrations ./migrations
 
