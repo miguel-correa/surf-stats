@@ -82,6 +82,7 @@ func runPlayerRecordsIngestionWithWorkers(database *sql.DB, steamID string, scra
 	}()
 
 	var failures []string
+	var player *models.Player
 	for result := range resultsCh {
 		if result.Err != nil {
 			failures = append(failures, fmt.Sprintf("%s: %v", result.MapName, result.Err))
@@ -92,15 +93,13 @@ func runPlayerRecordsIngestionWithWorkers(database *sql.DB, steamID string, scra
 			continue
 		}
 
-		playerID := result.Record.PlayerID
-		if err := db.UpsertPlayer(database, models.Player{
-			SteamID:  result.Record.SteamID,
-			PlayerID: &playerID,
-			Name:     result.Record.PlayerName,
-		}); err != nil {
-			failures = append(failures, fmt.Sprintf("%s: %v", result.MapName, err))
-			log.Printf("player-records-ingest: skipping map=%s after player upsert error: %v", result.MapName, err)
-			continue
+		if player == nil {
+			playerID := result.Record.PlayerID
+			player = &models.Player{
+				SteamID:  result.Record.SteamID,
+				PlayerID: &playerID,
+				Name:     result.Record.PlayerName,
+			}
 		}
 
 		inserted, err := db.SavePlayerMapRecordIfImproved(database, *result.Record)
@@ -110,6 +109,13 @@ func runPlayerRecordsIngestionWithWorkers(database *sql.DB, steamID string, scra
 		}
 		if inserted {
 			log.Printf("player-records-ingest: stored PB steam_id=%s map=%s time_ms=%d", steamID, result.MapName, result.Record.SurfTimeMS)
+		}
+	}
+
+	if player != nil {
+		if err := db.UpsertPlayer(database, *player); err != nil {
+			failures = append(failures, fmt.Sprintf("player %s: %v", player.SteamID, err))
+			log.Printf("player-records-ingest: failed to upsert player steam_id=%s: %v", player.SteamID, err)
 		}
 	}
 

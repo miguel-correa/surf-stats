@@ -67,6 +67,7 @@ func TestRunPlayerRecordsIngestionStoresOnlyNewOrImprovedMainRecords(t *testing.
 			"surf_gamma": nil,
 		},
 	}
+	installPlayerUpsertAudit(t, database)
 
 	if err := runPlayerRecordsIngestion(database, "STEAM_0:1:75949009", scraper); err != nil {
 		t.Fatalf("runPlayerRecordsIngestion returned error: %v", err)
@@ -89,6 +90,10 @@ func TestRunPlayerRecordsIngestionStoresOnlyNewOrImprovedMainRecords(t *testing.
 	}
 	if players[0].Name != "Billy Rubina" {
 		t.Fatalf("players[0].Name = %q, want Billy Rubina", players[0].Name)
+	}
+	upsertCount := playerUpsertAuditCount(t, database)
+	if upsertCount != 1 {
+		t.Fatalf("player upsert count = %d, want 1", upsertCount)
 	}
 }
 
@@ -304,6 +309,37 @@ func openJobTestDatabase(t *testing.T) *sql.DB {
 	}
 
 	return database
+}
+
+func installPlayerUpsertAudit(t *testing.T, database *sql.DB) {
+	t.Helper()
+
+	_, err := database.Exec(`
+		CREATE TABLE player_upsert_audit (action TEXT NOT NULL);
+		CREATE TRIGGER players_insert_audit
+		AFTER INSERT ON players
+		BEGIN
+			INSERT INTO player_upsert_audit (action) VALUES ('insert');
+		END;
+		CREATE TRIGGER players_update_audit
+		AFTER UPDATE ON players
+		BEGIN
+			INSERT INTO player_upsert_audit (action) VALUES ('update');
+		END;
+	`)
+	if err != nil {
+		t.Fatalf("install player upsert audit failed: %v", err)
+	}
+}
+
+func playerUpsertAuditCount(t *testing.T, database *sql.DB) int {
+	t.Helper()
+
+	var count int
+	if err := database.QueryRow(`SELECT COUNT(*) FROM player_upsert_audit`).Scan(&count); err != nil {
+		t.Fatalf("player upsert audit count query failed: %v", err)
+	}
+	return count
 }
 
 func jobMigrationPath(t *testing.T, relative string) string {
