@@ -27,7 +27,12 @@ export function useMaps(filters: MapFilters,
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
+        const controller = new AbortController();
+
         async function fetchMaps() {
+            setIsLoading(true);
+            setError(null);
+
             try {
                 const params = new URLSearchParams();
                 filters.tiers.forEach(t => params.append('tier', t.toString()));
@@ -42,7 +47,9 @@ export function useMaps(filters: MapFilters,
                 params.append('page', page.toString())
                 params.append('per_page', perPage.toString())
 
-                const response = await fetch(`/api/maps?${params}`)
+                const response = await fetch(`/api/maps?${params}`, {
+                    signal: controller.signal,
+                })
 
                 if (!response.ok) {
                     throw new Error('Failed to fetch maps');
@@ -51,13 +58,18 @@ export function useMaps(filters: MapFilters,
                 const data: PaginatedMaps = await response.json();
                 setPaginatedData(data);
             } catch (err) {
+                if (controller.signal.aborted) return;
                 setError(err instanceof Error ? err.message : 'An error occurred');
             } finally {
-                setIsLoading(false)
+                if (!controller.signal.aborted) {
+                    setIsLoading(false);
+                }
             }
         }
 
         fetchMaps();
+
+        return () => controller.abort();
     }, [filters.tiers, filters.search, filters.linear, filters.playerIds, filters.primaryPlayerId, filters.completion, filters.sort, filters.order, page, perPage])
 
     return { paginatedData, isLoading, error }

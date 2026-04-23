@@ -6,12 +6,14 @@ import type { Player } from "../types/Player";
 interface MapFiltersProps {
     filters: MapFilters;
     onFiltersChange: (filters: MapFilters) => void;
+    searchText: string;
+    onSearchChange: (value: string) => void;
     players: Player[];
     playersLoading: boolean;
     playersError: string | null;
 }
 
-export function MapFilters({ filters, onFiltersChange, players, playersLoading, playersError }: MapFiltersProps) {
+export function MapFilters({ filters, onFiltersChange, searchText, onSearchChange, players, playersLoading, playersError }: MapFiltersProps) {
     const playersDisabled = playersLoading || playersError !== null || players.length === 0;
 
     const handleTierToggle = (tier: number) => {
@@ -23,7 +25,7 @@ export function MapFilters({ filters, onFiltersChange, players, playersLoading, 
     };
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        onFiltersChange({ ...filters, search: e.target.value });
+        onSearchChange(e.target.value);
     }
 
     const handlePlayerToggle = (steamId: string) => {
@@ -83,7 +85,7 @@ export function MapFilters({ filters, onFiltersChange, players, playersLoading, 
                     <input
                         id="search"
                         type="text"
-                        value={filters.search}
+                        value={searchText}
                         onChange={handleSearchChange}
                         placeholder="Type map name..."
                         className="h-10 w-full px-4 border-2 border-gray-600 rounded-lg bg-gray-700/50 text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"

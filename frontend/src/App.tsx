@@ -76,6 +76,7 @@ function App() {
 
   const [storedFilters, setStoredFilters] = useState<MapFilters>(getInitialFilters)
   const [page, setPage] = useState(1)
+  const [searchText, setSearchText] = useState(storedFilters.search)
   const validPlayerIds = useMemo(() => new Set(players.map((player) => player.steam_id)), [players]);
   const filters = useMemo(() => {
     if (playersLoading || playersError) {
@@ -100,6 +101,14 @@ function App() {
   const { paginatedData, isLoading, error } = useMaps(filters, { page });
 
   useEffect(() => {
+    const id = setTimeout(() => {
+      setStoredFilters(prev => prev.search === searchText ? prev : { ...prev, search: searchText });
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(id);
+  }, [searchText]);
+
+  useEffect(() => {
     if (typeof window === 'undefined') {
       return;
     }
@@ -114,6 +123,9 @@ function App() {
   }, [filters.playerIds, filters.primaryPlayerId]);
 
   const handleFiltersChange = (nextFilters: MapFilters) => {
+    if (nextFilters.search !== searchText) {
+      setSearchText(nextFilters.search);
+    }
     setStoredFilters(nextFilters);
     setPage(1);
   };
@@ -141,6 +153,8 @@ function App() {
           <MapFiltersComponent
             filters={filters}
             onFiltersChange={handleFiltersChange}
+            searchText={searchText}
+            onSearchChange={setSearchText}
             players={players}
             playersLoading={playersLoading}
             playersError={playersError}
