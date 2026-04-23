@@ -2,9 +2,6 @@ package jobs
 
 import (
 	"database/sql"
-	"os"
-	"path/filepath"
-	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -12,6 +9,7 @@ import (
 	"surfstats/internal/db"
 	"surfstats/internal/models"
 	"surfstats/internal/scrapers/players"
+	"surfstats/migrations"
 )
 
 func TestRunPlayerRecordsIngestionStoresOnlyNewOrImprovedMainRecords(t *testing.T) {
@@ -290,24 +288,11 @@ func (s *blockingMainRecordScraper) FetchMainMapRecord(_ string, mapName string)
 
 func openJobTestDatabase(t *testing.T) *sql.DB {
 	t.Helper()
-
 	database := db.Open("file::memory:?cache=shared")
 	t.Cleanup(func() { _ = database.Close() })
-
-	for _, path := range []string{
-		jobMigrationPath(t, "../../migrations/001_create_maps.sql"),
-		jobMigrationPath(t, "../../migrations/002_create_player_map_records.sql"),
-		jobMigrationPath(t, "../../migrations/003_create_players.sql"),
-	} {
-		sqlBytes, err := os.ReadFile(path)
-		if err != nil {
-			t.Fatalf("ReadFile(%q) failed: %v", path, err)
-		}
-		if _, err := database.Exec(string(sqlBytes)); err != nil {
-			t.Fatalf("Exec migration %q failed: %v", path, err)
-		}
+	if err := db.Migrate(database, migrations.FS); err != nil {
+		t.Fatalf("Migrate failed: %v", err)
 	}
-
 	return database
 }
 
@@ -342,12 +327,3 @@ func playerUpsertAuditCount(t *testing.T, database *sql.DB) int {
 	return count
 }
 
-func jobMigrationPath(t *testing.T, relative string) string {
-	t.Helper()
-
-	_, filename, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatal("runtime.Caller failed")
-	}
-	return filepath.Clean(filepath.Join(filepath.Dir(filename), relative))
-}

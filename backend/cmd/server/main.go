@@ -6,6 +6,7 @@ import (
 	"os"
 	"surfstats/internal/db"
 	"surfstats/internal/handlers"
+	"surfstats/migrations"
 )
 
 func corsMiddleware(next http.Handler) http.Handler {
@@ -29,6 +30,10 @@ func main() {
 		dbPath = "data/surfstats.db"
 	}
 	database := db.Open(dbPath)
+
+	if err := db.Migrate(database, migrations.FS); err != nil {
+		log.Fatalf("migrate: %v", err)
+	}
 
 	mux := http.NewServeMux()
 

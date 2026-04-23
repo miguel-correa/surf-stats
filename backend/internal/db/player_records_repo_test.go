@@ -2,13 +2,11 @@ package db
 
 import (
 	"database/sql"
-	"os"
-	"path/filepath"
-	"runtime"
 	"testing"
 	"time"
 
 	"surfstats/internal/models"
+	"surfstats/migrations"
 )
 
 func TestSavePlayerMapRecordIfImproved(t *testing.T) {
@@ -91,33 +89,10 @@ func TestSavePlayerMapRecordIfImproved(t *testing.T) {
 
 func openTestDatabase(t *testing.T) *sql.DB {
 	t.Helper()
-
 	database := Open("file::memory:?cache=shared")
 	t.Cleanup(func() { _ = database.Close() })
-
-	for _, path := range []string{
-		migrationPath(t, "../../migrations/001_create_maps.sql"),
-		migrationPath(t, "../../migrations/002_create_player_map_records.sql"),
-		migrationPath(t, "../../migrations/003_create_players.sql"),
-	} {
-		sqlBytes, err := os.ReadFile(path)
-		if err != nil {
-			t.Fatalf("ReadFile(%q) failed: %v", path, err)
-		}
-		if _, err := database.Exec(string(sqlBytes)); err != nil {
-			t.Fatalf("Exec migration %q failed: %v", path, err)
-		}
+	if err := Migrate(database, migrations.FS); err != nil {
+		t.Fatalf("Migrate failed: %v", err)
 	}
-
 	return database
-}
-
-func migrationPath(t *testing.T, relative string) string {
-	t.Helper()
-
-	_, filename, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatal("runtime.Caller failed")
-	}
-	return filepath.Clean(filepath.Join(filepath.Dir(filename), relative))
 }

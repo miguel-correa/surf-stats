@@ -40,6 +40,7 @@ type PaginatedMaps struct {
 
 func GetMaps(database *sql.DB, filters MapFilters) (PaginatedMaps, error) {
 	var paginatedMaps PaginatedMaps
+	paginatedMaps.Maps = []models.Map{}
 
 	args := []any{}
 	query := buildMapsSelectQuery(filters, &args)

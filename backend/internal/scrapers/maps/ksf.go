@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"regexp"
@@ -21,7 +22,7 @@ func NewKSFScraper(baseURL string) *KSFScraper {
 	return &KSFScraper{
 		baseURL: baseURL,
 		client: &http.Client{
-			Timeout: 10 * time.Second,
+			Timeout: 30 * time.Second,
 		},
 	}
 }
@@ -45,6 +46,7 @@ func (s *KSFScraper) FetchMaps(path string) ([]Map, error) {
 
 	var response MapsResponse
 	if err != nil {
+		log.Printf("maps-scraper: fetching %s (timeout=%s)", s.baseURL, s.client.Timeout)
 		resp, err := s.client.Get(s.baseURL)
 		if err != nil {
 			return nil, err
@@ -62,8 +64,8 @@ func (s *KSFScraper) FetchMaps(path string) ([]Map, error) {
 	}
 	html := string(body)
 
-	// Find where maps array is - pattern from JS: /({\\"maps\\":.*?})]\\n/
-	re := regexp.MustCompile(`({\\"maps\\":.*?})]\\n`)
+	// Find where maps array is - extract the full {"maps":[...]} object
+	re := regexp.MustCompile(`(\{\\"maps\\":\[.*?\]\})`)
 	matchResult := re.FindStringSubmatch(html)
 
 	if len(matchResult) < 2 {

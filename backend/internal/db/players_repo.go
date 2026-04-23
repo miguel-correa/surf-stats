@@ -19,7 +19,7 @@ func ListPlayers(database *sql.DB) ([]models.Player, error) {
 	}
 	defer rows.Close()
 
-	var players []models.Player
+	players := []models.Player{}
 	for rows.Next() {
 		var player models.Player
 		var playerID sql.NullInt64

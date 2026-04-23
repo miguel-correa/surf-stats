@@ -1,10 +1,12 @@
 package db
 
 import (
-	"os"
+	"io/fs"
 	"testing"
+	"testing/fstest"
 
 	"surfstats/internal/models"
+	"surfstats/migrations"
 )
 
 func TestListPlayersReturnsAlphabeticalPlayers(t *testing.T) {
@@ -42,17 +44,17 @@ func TestPlayerMigrationBackfillsDistinctSteamIDs(t *testing.T) {
 	database := Open("file::memory:?cache=shared")
 	t.Cleanup(func() { _ = database.Close() })
 
-	for _, path := range []string{
-		migrationPath(t, "../../migrations/001_create_maps.sql"),
-		migrationPath(t, "../../migrations/002_create_player_map_records.sql"),
-	} {
-		sqlBytes, err := os.ReadFile(path)
+	// Apply only migrations 001 and 002 using a partial FS
+	partialFS := make(fstest.MapFS)
+	for _, name := range []string{"001_create_maps.sql", "002_create_player_map_records.sql"} {
+		data, err := fs.ReadFile(migrations.FS, name)
 		if err != nil {
-			t.Fatalf("ReadFile(%q) failed: %v", path, err)
+			t.Fatalf("read %s from embed: %v", name, err)
 		}
-		if _, err := database.Exec(string(sqlBytes)); err != nil {
-			t.Fatalf("Exec migration %q failed: %v", path, err)
-		}
+		partialFS[name] = &fstest.MapFile{Data: data}
+	}
+	if err := Migrate(database, partialFS); err != nil {
+		t.Fatalf("Migrate (partial) failed: %v", err)
 	}
 
 	if _, err := database.Exec(`
@@ -65,12 +67,9 @@ func TestPlayerMigrationBackfillsDistinctSteamIDs(t *testing.T) {
 		t.Fatalf("seed player_map_records failed: %v", err)
 	}
 
-	sqlBytes, err := os.ReadFile(migrationPath(t, "../../migrations/003_create_players.sql"))
-	if err != nil {
-		t.Fatalf("ReadFile(003_create_players.sql) failed: %v", err)
-	}
-	if _, err := database.Exec(string(sqlBytes)); err != nil {
-		t.Fatalf("Exec migration 003_create_players.sql failed: %v", err)
+	// Now apply the full FS — only 003 should run, triggering the backfill
+	if err := Migrate(database, migrations.FS); err != nil {
+		t.Fatalf("Migrate (full) failed: %v", err)
 	}
 
 	players, err := ListPlayers(database)
