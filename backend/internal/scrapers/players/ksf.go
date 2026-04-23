@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"math"
 	"net/http"
 	"net/url"
@@ -146,20 +147,28 @@ func (s *KSFScraper) fetchMapRecords(steamID string, mapName string) (mapRecords
 	query.Set("mode", "0")
 	endpoint.RawQuery = query.Encode()
 
-	resp, err := s.client.Get(endpoint.String())
+	reqURL := endpoint.String()
+	start := time.Now()
+	resp, err := s.client.Get(reqURL)
+	elapsed := time.Since(start)
 	if err != nil {
+		log.Printf("ksf-scraper: GET %s failed after %s: %v", reqURL, elapsed, err)
 		return mapRecordsResponse{}, err
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
+		log.Printf("ksf-scraper: GET %s status=%d after %s", reqURL, resp.StatusCode, elapsed)
 		return mapRecordsResponse{}, HTTPStatusError{StatusCode: resp.StatusCode}
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
+		log.Printf("ksf-scraper: GET %s read body failed after %s: %v", reqURL, time.Since(start), err)
 		return mapRecordsResponse{}, err
 	}
+
+	log.Printf("ksf-scraper: GET %s status=200 bytes=%d duration=%s", reqURL, len(body), elapsed)
 
 	var response mapRecordsResponse
 	if err := json.Unmarshal(body, &response); err != nil {

@@ -4,10 +4,12 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"math/rand"
 	"surfstats/internal/db"
 	"surfstats/internal/scrapers/maps"
 	"surfstats/internal/scrapers/players"
 	"sync"
+	"time"
 )
 
 type completionJob struct {
@@ -52,13 +54,14 @@ func RunWeeklyIngestion(database *sql.DB, seedSteamID string) error {
 			defer wg.Done()
 			playerScraper := players.NewKSFScraper()
 			for job := range jobsCh {
-				mapID, comps, err := playerScraper.FetchMapCompletionsFromPlayerRecord(seedSteamID, job.Name)
+				mapID, comps, err := fetchCompletionsWithRetry(playerScraper, seedSteamID, job.Name)
 				resultsCh <- completionResult{
 					MapName: job.Name,
 					MapID:   mapID,
 					Comps:   comps,
 					Err:     err,
 				}
+				time.Sleep(100*time.Millisecond + time.Duration(rand.Intn(150))*time.Millisecond)
 			}
 		}()
 	}
@@ -103,4 +106,20 @@ func RunWeeklyIngestion(database *sql.DB, seedSteamID string) error {
 
 	log.Printf("weekly-ingest: done")
 	return nil
+}
+
+func fetchCompletionsWithRetry(scraper *players.KSFScraper, steamID, mapName string) (int, int, error) {
+	const maxAttempts = 3
+	var lastErr error
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		mapID, comps, err := scraper.FetchMapCompletionsFromPlayerRecord(steamID, mapName)
+		if err == nil {
+			return mapID, comps, nil
+		}
+		lastErr = err
+		if attempt < maxAttempts {
+			time.Sleep(time.Duration(attempt*500) * time.Millisecond)
+		}
+	}
+	return -1, -1, lastErr
 }
