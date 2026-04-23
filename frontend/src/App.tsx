@@ -1,27 +1,126 @@
 import { useMaps, type MapFilters, type SortColumn } from "./hooks/useMaps"
 import { MapTable } from "./components/MapTable";
 import { Pagination } from "./components/Pagination";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MapFilters as MapFiltersComponent } from "./components/MapFilters";
+import { usePlayers } from "./hooks/usePlayers";
 
-function App() {
-  const [filters, setFilters] = useState<MapFilters>({
+const PLAYER_IDS_STORAGE_KEY = 'surfstats.playerIds';
+const PRIMARY_PLAYER_STORAGE_KEY = 'surfstats.primaryPlayerId';
+
+function readStoredPlayerIds(): string[] {
+  if (typeof window === 'undefined') {
+    return [];
+  }
+
+  try {
+    const raw = window.localStorage.getItem(PLAYER_IDS_STORAGE_KEY);
+    if (raw == null) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed.filter((value): value is string => typeof value === 'string');
+  } catch {
+    return [];
+  }
+}
+
+function readStoredPrimaryPlayerId(): string {
+  if (typeof window === 'undefined') {
+    return '';
+  }
+
+  return window.localStorage.getItem(PRIMARY_PLAYER_STORAGE_KEY) ?? '';
+}
+
+function normalizePlayerSelection(playerIds: string[], primaryPlayerId: string, validPlayerIds: Set<string>) {
+  const nextPlayerIds: string[] = [];
+  const seen = new Set<string>();
+
+  for (const playerId of playerIds) {
+    if (!validPlayerIds.has(playerId) || seen.has(playerId)) {
+      continue;
+    }
+
+    seen.add(playerId);
+    nextPlayerIds.push(playerId);
+  }
+
+  return {
+    playerIds: nextPlayerIds,
+    primaryPlayerId: nextPlayerIds.includes(primaryPlayerId) ? primaryPlayerId : (nextPlayerIds[0] ?? ''),
+  };
+}
+
+function getInitialFilters(): MapFilters {
+  return {
     tiers: [],
     search: '',
     linear: 'all',
+    playerIds: readStoredPlayerIds(),
+    primaryPlayerId: readStoredPrimaryPlayerId(),
+    completion: 'all',
     sort: 'difficulty',
     order: 'desc'
-  })
+  };
+}
+
+function App() {
+  const { players, isLoading: playersLoading, error: playersError } = usePlayers();
+  const playerLabels = Object.fromEntries(players.map((player) => [player.steam_id, player.name || player.steam_id]));
+
+  const [storedFilters, setStoredFilters] = useState<MapFilters>(getInitialFilters)
   const [page, setPage] = useState(1)
+  const validPlayerIds = useMemo(() => new Set(players.map((player) => player.steam_id)), [players]);
+  const filters = useMemo(() => {
+    if (playersLoading || playersError) {
+      return storedFilters;
+    }
+
+    const nextSelection = normalizePlayerSelection(storedFilters.playerIds, storedFilters.primaryPlayerId, validPlayerIds);
+    if (
+      nextSelection.playerIds.length === storedFilters.playerIds.length &&
+      nextSelection.playerIds.every((playerId, index) => playerId === storedFilters.playerIds[index]) &&
+      nextSelection.primaryPlayerId === storedFilters.primaryPlayerId
+    ) {
+      return storedFilters;
+    }
+
+    return {
+      ...storedFilters,
+      playerIds: nextSelection.playerIds,
+      primaryPlayerId: nextSelection.primaryPlayerId,
+    };
+  }, [playersError, playersLoading, storedFilters, validPlayerIds]);
   const { paginatedData, isLoading, error } = useMaps(filters, { page });
 
   useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    window.localStorage.setItem(PLAYER_IDS_STORAGE_KEY, JSON.stringify(filters.playerIds));
+    if (filters.primaryPlayerId) {
+      window.localStorage.setItem(PRIMARY_PLAYER_STORAGE_KEY, filters.primaryPlayerId);
+      return;
+    }
+
+    window.localStorage.removeItem(PRIMARY_PLAYER_STORAGE_KEY);
+  }, [filters.playerIds, filters.primaryPlayerId]);
+
+  const handleFiltersChange = (nextFilters: MapFilters) => {
+    setStoredFilters(nextFilters);
     setPage(1);
-  }, [filters.tiers, filters.search, filters.linear, filters.sort, filters.order]);
+  };
 
   const handleSort = (column: SortColumn) => {
     const newOrder = filters.sort === column && filters.order === 'desc' ? 'asc' : 'desc';
-    setFilters({ ...filters, sort: column, order: newOrder });
+    handleFiltersChange({ ...filters, sort: column, order: newOrder });
   };
 
 
@@ -39,7 +138,13 @@ function App() {
         </header>
 
         <main>
-          <MapFiltersComponent filters={filters} onFiltersChange={setFilters} />
+          <MapFiltersComponent
+            filters={filters}
+            onFiltersChange={handleFiltersChange}
+            players={players}
+            playersLoading={playersLoading}
+            playersError={playersError}
+          />
 
           {isLoading && (
             <div className="text-center py-12">
@@ -55,7 +160,14 @@ function App() {
 
           {!isLoading && !error && (
             <div>
-              <MapTable maps={paginatedData?.maps || []} sortCol={filters.sort} sortOrder={filters.order} onSort={handleSort} />
+              <MapTable
+                maps={paginatedData?.maps || []}
+                sortCol={filters.sort}
+                sortOrder={filters.order}
+                onSort={handleSort}
+                primaryPlayerId={filters.primaryPlayerId}
+                playerLabels={playerLabels}
+              />
               <Pagination
                 currentPage={page}
                 perPage={10}

@@ -25,12 +25,13 @@ func TestGetMapsIncludesPlayerRecordFields(t *testing.T) {
 	})
 
 	result, err := GetMaps(database, MapFilters{
-		SteamID:    "STEAM_0:1:75949009",
-		SortCol:    "id",
-		Order:      "asc",
-		Page:       1,
-		PerPage:    10,
-		Completion: CompletionAll,
+		SteamIDs:       []string{"STEAM_0:1:75949009"},
+		PrimarySteamID: "STEAM_0:1:75949009",
+		SortCol:        "id",
+		Order:          "asc",
+		Page:           1,
+		PerPage:        10,
+		Completion:     CompletionAll,
 	})
 	if err != nil {
 		t.Fatalf("GetMaps returned error: %v", err)
@@ -58,6 +59,12 @@ func TestGetMapsIncludesPlayerRecordFields(t *testing.T) {
 	if second.PlayerRank == nil || *second.PlayerRank != 142 {
 		t.Fatalf("second.PlayerRank = %v, want 142", second.PlayerRank)
 	}
+	if len(second.PlayerRecords) != 1 {
+		t.Fatalf("len(second.PlayerRecords) = %d, want 1", len(second.PlayerRecords))
+	}
+	if !second.PlayerRecords[0].Completed {
+		t.Fatal("second.PlayerRecords[0].Completed = false, want true")
+	}
 }
 
 func TestGetMapsFiltersByCompletionStatus(t *testing.T) {
@@ -73,36 +80,49 @@ func TestGetMapsFiltersByCompletionStatus(t *testing.T) {
 		TotalRanks: 27893,
 	})
 	savePlayerPB(t, database, models.PlayerMapRecord{
+		SteamID:    "STEAM_0:1:00000001",
+		PlayerID:   111111,
+		KSFMapID:   1,
+		SurfTimeMS: 41000,
+		Rank:       5000,
+		TotalRanks: 27893,
+	})
+	savePlayerPB(t, database, models.PlayerMapRecord{
 		SteamID:    "STEAM_0:1:75949009",
 		PlayerID:   949217,
-		KSFMapID:   3,
+		KSFMapID:   2,
 		SurfTimeMS: 205000,
 		Rank:       100,
 		TotalRanks: 5000,
 	})
 
 	completed, err := GetMaps(database, MapFilters{
-		SteamID:    "STEAM_0:1:75949009",
-		SortCol:    "id",
-		Order:      "asc",
-		Page:       1,
-		PerPage:    10,
-		Completion: CompletionCompleted,
+		SteamIDs:       []string{"STEAM_0:1:75949009", "STEAM_0:1:00000001"},
+		PrimarySteamID: "STEAM_0:1:75949009",
+		SortCol:        "id",
+		Order:          "asc",
+		Page:           1,
+		PerPage:        10,
+		Completion:     CompletionCompleted,
 	})
 	if err != nil {
 		t.Fatalf("GetMaps completed returned error: %v", err)
 	}
-	if completed.Total != 2 || len(completed.Maps) != 2 {
-		t.Fatalf("completed maps = total %d len %d, want 2/2", completed.Total, len(completed.Maps))
+	if completed.Total != 1 || len(completed.Maps) != 1 {
+		t.Fatalf("completed maps = total %d len %d, want 1/1", completed.Total, len(completed.Maps))
+	}
+	if completed.Maps[0].KSFMapID != 1 {
+		t.Fatalf("completed map KSFMapID = %d, want 1", completed.Maps[0].KSFMapID)
 	}
 
 	incomplete, err := GetMaps(database, MapFilters{
-		SteamID:    "STEAM_0:1:75949009",
-		SortCol:    "id",
-		Order:      "asc",
-		Page:       1,
-		PerPage:    10,
-		Completion: CompletionIncomplete,
+		SteamIDs:       []string{"STEAM_0:1:75949009", "STEAM_0:1:00000001"},
+		PrimarySteamID: "STEAM_0:1:75949009",
+		SortCol:        "id",
+		Order:          "asc",
+		Page:           1,
+		PerPage:        10,
+		Completion:     CompletionIncomplete,
 	})
 	if err != nil {
 		t.Fatalf("GetMaps incomplete returned error: %v", err)
@@ -110,8 +130,77 @@ func TestGetMapsFiltersByCompletionStatus(t *testing.T) {
 	if incomplete.Total != 1 || len(incomplete.Maps) != 1 {
 		t.Fatalf("incomplete maps = total %d len %d, want 1/1", incomplete.Total, len(incomplete.Maps))
 	}
-	if incomplete.Maps[0].KSFMapID != 2 {
-		t.Fatalf("incomplete map KSFMapID = %d, want 2", incomplete.Maps[0].KSFMapID)
+	if incomplete.Maps[0].KSFMapID != 3 {
+		t.Fatalf("incomplete map KSFMapID = %d, want 3", incomplete.Maps[0].KSFMapID)
+	}
+}
+
+func TestGetMapsReturnsAllSelectedPlayerSummariesAndPrimaryProjection(t *testing.T) {
+	database := openPlayerMapsTestDatabase(t)
+
+	seedMapsForPlayerFilterTests(t, database)
+	groupTier1 := 1
+	groupTier3 := 3
+	savePlayerPB(t, database, models.PlayerMapRecord{
+		SteamID:    "STEAM_0:1:75949009",
+		PlayerID:   949217,
+		KSFMapID:   2,
+		SurfTimeMS: 105186,
+		Rank:       142,
+		TotalRanks: 6614,
+		GroupTier:  &groupTier1,
+	})
+	savePlayerPB(t, database, models.PlayerMapRecord{
+		SteamID:    "STEAM_0:1:00000001",
+		PlayerID:   111111,
+		KSFMapID:   2,
+		SurfTimeMS: 110500,
+		Rank:       320,
+		TotalRanks: 6614,
+		GroupTier:  &groupTier3,
+	})
+
+	result, err := GetMaps(database, MapFilters{
+		SteamIDs:       []string{"STEAM_0:1:75949009", "STEAM_0:1:00000001"},
+		PrimarySteamID: "STEAM_0:1:00000001",
+		SortCol:        "id",
+		Order:          "asc",
+		Page:           1,
+		PerPage:        10,
+		Completion:     CompletionAll,
+	})
+	if err != nil {
+		t.Fatalf("GetMaps returned error: %v", err)
+	}
+
+	second := result.Maps[1]
+	if second.PlayerBestTimeMS == nil || *second.PlayerBestTimeMS != 110500 {
+		t.Fatalf("primary PlayerBestTimeMS = %v, want 110500", second.PlayerBestTimeMS)
+	}
+	if len(second.PlayerRecords) != 2 {
+		t.Fatalf("len(second.PlayerRecords) = %d, want 2", len(second.PlayerRecords))
+	}
+	if second.PlayerRecords[0].SteamID != "STEAM_0:1:75949009" {
+		t.Fatalf("first player record steam id = %q, want STEAM_0:1:75949009", second.PlayerRecords[0].SteamID)
+	}
+	if second.PlayerRecords[1].SteamID != "STEAM_0:1:00000001" {
+		t.Fatalf("second player record steam id = %q, want STEAM_0:1:00000001", second.PlayerRecords[1].SteamID)
+	}
+	if second.PlayerRecords[1].BestTimeMS == nil || *second.PlayerRecords[1].BestTimeMS != 110500 {
+		t.Fatalf("second player record best time = %v, want 110500", second.PlayerRecords[1].BestTimeMS)
+	}
+	if second.PlayerRecords[0].GroupTier == nil || *second.PlayerRecords[0].GroupTier != 1 {
+		t.Fatalf("first player record group tier = %v, want 1", second.PlayerRecords[0].GroupTier)
+	}
+	if second.PlayerRecords[1].GroupTier == nil || *second.PlayerRecords[1].GroupTier != 3 {
+		t.Fatalf("second player record group tier = %v, want 3", second.PlayerRecords[1].GroupTier)
+	}
+	first := result.Maps[0]
+	if len(first.PlayerRecords) != 2 {
+		t.Fatalf("len(first.PlayerRecords) = %d, want 2", len(first.PlayerRecords))
+	}
+	if first.PlayerRecords[0].GroupTier != nil {
+		t.Fatalf("incomplete player record group tier = %v, want nil", first.PlayerRecords[0].GroupTier)
 	}
 }
 
@@ -124,6 +213,7 @@ func openPlayerMapsTestDatabase(t *testing.T) *sql.DB {
 	for _, path := range []string{
 		playerMapsMigrationPath(t, "../../migrations/001_create_maps.sql"),
 		playerMapsMigrationPath(t, "../../migrations/002_create_player_map_records.sql"),
+		playerMapsMigrationPath(t, "../../migrations/003_create_players.sql"),
 	} {
 		sqlBytes, err := os.ReadFile(path)
 		if err != nil {

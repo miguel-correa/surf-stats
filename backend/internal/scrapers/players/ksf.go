@@ -19,6 +19,32 @@ type KSFScraper struct {
 	client  *http.Client
 }
 
+type playerBasicInfo struct {
+	SteamID    string `json:"steamID"`
+	PlayerID   int    `json:"playerID"`
+	Name       string `json:"name"`
+	PlayerName string `json:"playerName"`
+}
+
+func (i playerBasicInfo) DisplayName() string {
+	if strings.TrimSpace(i.Name) != "" {
+		return strings.TrimSpace(i.Name)
+	}
+	return strings.TrimSpace(i.PlayerName)
+}
+
+type HTTPStatusError struct {
+	StatusCode int
+}
+
+func (e HTTPStatusError) Error() string {
+	return fmt.Sprintf("unexpected status code: %d", e.StatusCode)
+}
+
+func (e HTTPStatusError) Retryable() bool {
+	return e.StatusCode >= http.StatusInternalServerError
+}
+
 func NewKSFScraper() *KSFScraper {
 	return newKSFScraper("https://ksf.surf/api/players", &http.Client{
 		Timeout: 10 * time.Second,
@@ -33,12 +59,9 @@ func newKSFScraper(baseURL string, client *http.Client) *KSFScraper {
 }
 
 type mapRecordsResponse struct {
-	MapID     string `json:"mapID"`
-	BasicInfo struct {
-		SteamID  string `json:"steamID"`
-		PlayerID int    `json:"playerID"`
-	} `json:"basicInfo"`
-	Zones []struct {
+	MapID     string          `json:"mapID"`
+	BasicInfo playerBasicInfo `json:"basicInfo"`
+	Zones     []struct {
 		ZoneID      int      `json:"zoneId"`
 		StageID     string   `json:"stageID"`
 		SurfTime    *float64 `json:"surfTime"`
@@ -90,6 +113,7 @@ func (s *KSFScraper) FetchMainMapRecord(steamID string, mapName string) (*models
 		record := models.PlayerMapRecord{
 			SteamID:     response.BasicInfo.SteamID,
 			PlayerID:    response.BasicInfo.PlayerID,
+			PlayerName:  response.BasicInfo.DisplayName(),
 			KSFMapID:    mapID,
 			SurfTimeMS:  int(math.Round(*zone.SurfTime * 1000)),
 			Rank:        zone.Rank,
@@ -129,7 +153,7 @@ func (s *KSFScraper) fetchMapRecords(steamID string, mapName string) (mapRecords
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
-		return mapRecordsResponse{}, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		return mapRecordsResponse{}, HTTPStatusError{StatusCode: resp.StatusCode}
 	}
 
 	body, err := io.ReadAll(resp.Body)

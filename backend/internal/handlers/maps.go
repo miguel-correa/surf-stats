@@ -27,7 +27,11 @@ func GetMaps(database *sql.DB) http.HandlerFunc {
 		}
 
 		search := q.Get("search")
-		steamID := q.Get("steam_id")
+		steamIDs := dedupeStrings(q["steam_id"])
+		primarySteamID := q.Get("primary_steam_id")
+		if primarySteamID == "" && len(steamIDs) > 0 {
+			primarySteamID = steamIDs[0]
+		}
 
 		completion := db.CompletionAll
 		switch q.Get("completion_status") {
@@ -68,15 +72,16 @@ func GetMaps(database *sql.DB) http.HandlerFunc {
 		}
 
 		filters := db.MapFilters{
-			Tiers:      tiers,
-			Search:     search,
-			Linear:     linearFilter,
-			SteamID:    steamID,
-			Completion: completion,
-			SortCol:    sortCol,
-			Order:      order,
-			Page:       page,
-			PerPage:    perPage,
+			Tiers:          tiers,
+			Search:         search,
+			Linear:         linearFilter,
+			SteamIDs:       steamIDs,
+			PrimarySteamID: primarySteamID,
+			Completion:     completion,
+			SortCol:        sortCol,
+			Order:          order,
+			Page:           page,
+			PerPage:        perPage,
 		}
 
 		maps, err := db.GetMaps(database, filters)
@@ -88,4 +93,20 @@ func GetMaps(database *sql.DB) http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(maps)
 	}
+}
+
+func dedupeStrings(values []string) []string {
+	seen := make(map[string]struct{}, len(values))
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		if value == "" {
+			continue
+		}
+		if _, exists := seen[value]; exists {
+			continue
+		}
+		seen[value] = struct{}{}
+		result = append(result, value)
+	}
+	return result
 }

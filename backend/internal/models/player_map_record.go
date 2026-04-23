@@ -6,6 +6,7 @@ type PlayerMapRecord struct {
 	ID          int        `json:"id"`
 	SteamID     string     `json:"steam_id"`
 	PlayerID    int        `json:"player_id"`
+	PlayerName  string     `json:"player_name,omitempty"`
 	KSFMapID    int        `json:"ksf_map_id"`
 	SurfTimeMS  int        `json:"surf_time_ms"`
 	Rank        int        `json:"rank"`

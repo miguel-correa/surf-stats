@@ -14,7 +14,8 @@ func TestFetchMainMapRecordParsesZoneZeroPB(t *testing.T) {
 				"mapID": "285",
 				"basicInfo": {
 					"steamID": "STEAM_0:1:75949009",
-					"playerID": 949217
+					"playerID": 949217,
+					"name": "Billy Rubina"
 				},
 				"records": [
 					{
@@ -52,6 +53,9 @@ func TestFetchMainMapRecordParsesZoneZeroPB(t *testing.T) {
 	}
 	if record.PlayerID != 949217 {
 		t.Fatalf("PlayerID = %d, want %d", record.PlayerID, 949217)
+	}
+	if record.PlayerName != "Billy Rubina" {
+		t.Fatalf("PlayerName = %q, want %q", record.PlayerName, "Billy Rubina")
 	}
 	if record.KSFMapID != 285 {
 		t.Fatalf("KSFMapID = %d, want %d", record.KSFMapID, 285)

@@ -22,7 +22,10 @@ The app stores one `maps` table with:
 - Linear vs staged flag
 - Notes and `updated_at`
 
-The current API consumed by the frontend is `GET /api/maps`.
+The current APIs consumed by the frontend are:
+
+- `GET /api/maps`
+- `GET /api/players`
 
 ## Local Development
 
@@ -59,6 +62,8 @@ Create the database and schema once:
 ```bash
 mkdir -p backend/data
 sqlite3 backend/data/surfstats.db < backend/migrations/001_create_maps.sql
+sqlite3 backend/data/surfstats.db < backend/migrations/002_create_player_map_records.sql
+sqlite3 backend/data/surfstats.db < backend/migrations/003_create_players.sql
 ```
 
 ## Data Ingestion

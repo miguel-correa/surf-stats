@@ -4,20 +4,22 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
+
 	"surfstats/internal/models"
 	"surfstats/internal/scrapers/maps"
 )
 
 type MapFilters struct {
-	Tiers      []int
-	Search     string
-	Linear     *int
-	SteamID    string
-	Completion CompletionFilter
-	SortCol    string
-	Order      string
-	Page       int
-	PerPage    int
+	Tiers          []int
+	Search         string
+	Linear         *int
+	SteamIDs       []string
+	PrimarySteamID string
+	Completion     CompletionFilter
+	SortCol        string
+	Order          string
+	Page           int
+	PerPage        int
 }
 
 type CompletionFilter string
@@ -52,6 +54,7 @@ func GetMaps(database *sql.DB, filters MapFilters) (PaginatedMaps, error) {
 	}
 	defer rows.Close()
 
+	var mapIDs []int
 	for rows.Next() {
 		var m models.Map
 		var playerBestTime sql.NullInt64
@@ -89,10 +92,21 @@ func GetMaps(database *sql.DB, filters MapFilters) (PaginatedMaps, error) {
 			m.Completed = &value
 		}
 		paginatedMaps.Maps = append(paginatedMaps.Maps, m)
+		mapIDs = append(mapIDs, m.KSFMapID)
 	}
 
 	if err := rows.Err(); err != nil {
 		return PaginatedMaps{}, err
+	}
+
+	if len(filters.SteamIDs) > 0 && len(mapIDs) > 0 {
+		summariesByMapID, err := GetBestPlayerMapSummariesForMaps(database, filters.SteamIDs, mapIDs)
+		if err != nil {
+			return PaginatedMaps{}, err
+		}
+		for i := range paginatedMaps.Maps {
+			paginatedMaps.Maps[i].PlayerRecords = summariesByMapID[paginatedMaps.Maps[i].KSFMapID]
+		}
 	}
 
 	paginatedMaps.Page = filters.Page
@@ -122,7 +136,7 @@ func buildMapsSelectQuery(filters MapFilters, args *[]any) string {
 				linear,
 				updated_at`
 
-	if filters.SteamID != "" {
+	if filters.PrimarySteamID != "" {
 		query += `,
 				(
 					SELECT pr.surf_time_ms
@@ -137,20 +151,22 @@ func buildMapsSelectQuery(filters MapFilters, args *[]any) string {
 					WHERE pr.steam_id = ? AND pr.ksf_map_id = maps.ksf_map_id
 					ORDER BY pr.surf_time_ms ASC, pr.id DESC
 					LIMIT 1
-				) AS player_rank,
-				CASE
-					WHEN EXISTS (
-						SELECT 1
-						FROM player_map_records pr
-						WHERE pr.steam_id = ? AND pr.ksf_map_id = maps.ksf_map_id
-					) THEN 1
-					ELSE 0
-				END AS completed`
-		*args = append(*args, filters.SteamID, filters.SteamID, filters.SteamID)
+				) AS player_rank`
+		*args = append(*args, filters.PrimarySteamID, filters.PrimarySteamID)
 	} else {
 		query += `,
 				NULL AS player_best_time_ms,
-				NULL AS player_rank,
+				NULL AS player_rank`
+	}
+
+	if len(filters.SteamIDs) > 0 {
+		query += `,
+				CASE
+					WHEN ` + buildSelectedCompletionCountExpr(filters.SteamIDs, args) + ` = ` + fmt.Sprintf("%d", len(filters.SteamIDs)) + ` THEN 1
+					ELSE 0
+				END AS completed`
+	} else {
+		query += `,
 				NULL AS completed`
 	}
 
@@ -184,36 +200,42 @@ func buildMapsWhereClause(filters MapFilters, args *[]any) string {
 		*args = append(*args, *filters.Linear)
 	}
 
-	if filters.SteamID != "" {
+	if len(filters.SteamIDs) > 0 {
 		switch filters.Completion {
 		case CompletionCompleted:
-			query += ` AND EXISTS (
-				SELECT 1
-				FROM player_map_records pr
-				WHERE pr.steam_id = ? AND pr.ksf_map_id = maps.ksf_map_id
-			)`
-			*args = append(*args, filters.SteamID)
+			query += " AND " + buildSelectedCompletionCountExpr(filters.SteamIDs, args) + " = " + fmt.Sprintf("%d", len(filters.SteamIDs))
 		case CompletionIncomplete:
-			query += ` AND NOT EXISTS (
-				SELECT 1
-				FROM player_map_records pr
-				WHERE pr.steam_id = ? AND pr.ksf_map_id = maps.ksf_map_id
-			)`
-			*args = append(*args, filters.SteamID)
+			query += " AND " + buildSelectedCompletionCountExpr(filters.SteamIDs, args) + " = 0"
 		}
 	}
 
 	return query
 }
 
+func buildSelectedCompletionCountExpr(steamIDs []string, args *[]any) string {
+	placeholders := strings.Repeat("?,", len(steamIDs)-1) + "?"
+	for _, steamID := range steamIDs {
+		*args = append(*args, steamID)
+	}
+	return `
+		(
+			SELECT COUNT(DISTINCT pr.steam_id)
+			FROM player_map_records pr
+			WHERE pr.ksf_map_id = maps.ksf_map_id
+			  AND pr.steam_id IN (` + placeholders + `)
+		)
+	`
+}
+
 func GetMapsCount(database *sql.DB, filters MapFilters) (int, error) {
 	args := []any{}
-	query := (`
+	query := `
 			SELECT COUNT(*)
 			FROM maps
 			WHERE 1=1
-		`)
+		`
 	query += buildMapsWhereClause(filters, &args)
+
 	var count int
 	err := database.QueryRow(query, args...).Scan(&count)
 	if err != nil {
@@ -223,8 +245,93 @@ func GetMapsCount(database *sql.DB, filters MapFilters) (int, error) {
 	return count, nil
 }
 
-func UpsertMaps(database *sql.DB, maps []maps.Map) error {
+func GetBestPlayerMapSummariesForMaps(database *sql.DB, steamIDs []string, mapIDs []int) (map[int][]models.PlayerMapSummary, error) {
+	steamPlaceholders := strings.Repeat("?,", len(steamIDs)-1) + "?"
+	mapPlaceholders := strings.Repeat("?,", len(mapIDs)-1) + "?"
 
+	args := make([]any, 0, len(steamIDs)+len(mapIDs))
+	for _, steamID := range steamIDs {
+		args = append(args, steamID)
+	}
+	for _, mapID := range mapIDs {
+		args = append(args, mapID)
+	}
+
+	rows, err := database.Query(`
+		SELECT steam_id, ksf_map_id, surf_time_ms, rank, group_tier
+		FROM player_map_records
+		WHERE steam_id IN (`+steamPlaceholders+`)
+		  AND ksf_map_id IN (`+mapPlaceholders+`)
+		ORDER BY ksf_map_id ASC, steam_id ASC, surf_time_ms ASC, id DESC
+	`, args...)
+	if err != nil {
+		return nil, fmt.Errorf("query best player map summaries: %w", err)
+	}
+	defer rows.Close()
+
+	type mapKey struct {
+		mapID   int
+		steamID string
+	}
+
+	bestByKey := make(map[mapKey]models.PlayerMapSummary)
+	for rows.Next() {
+		var steamID string
+		var mapID int
+		var bestTime int
+		var rank sql.NullInt64
+		var groupTier sql.NullInt64
+		if err := rows.Scan(&steamID, &mapID, &bestTime, &rank, &groupTier); err != nil {
+			return nil, fmt.Errorf("scan best player map summary: %w", err)
+		}
+
+		key := mapKey{mapID: mapID, steamID: steamID}
+		if _, exists := bestByKey[key]; exists {
+			continue
+		}
+
+		summary := models.PlayerMapSummary{
+			SteamID:   steamID,
+			Completed: true,
+		}
+		bestTimeCopy := bestTime
+		summary.BestTimeMS = &bestTimeCopy
+		if rank.Valid {
+			rankValue := int(rank.Int64)
+			summary.Rank = &rankValue
+		}
+		if groupTier.Valid {
+			groupTierValue := int(groupTier.Int64)
+			summary.GroupTier = &groupTierValue
+		}
+		bestByKey[key] = summary
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate best player map summaries: %w", err)
+	}
+
+	result := make(map[int][]models.PlayerMapSummary, len(mapIDs))
+	for _, mapID := range mapIDs {
+		summaries := make([]models.PlayerMapSummary, 0, len(steamIDs))
+		for _, steamID := range steamIDs {
+			key := mapKey{mapID: mapID, steamID: steamID}
+			summary, exists := bestByKey[key]
+			if !exists {
+				summary = models.PlayerMapSummary{
+					SteamID:   steamID,
+					Completed: false,
+				}
+			}
+			summaries = append(summaries, summary)
+		}
+		result[mapID] = summaries
+	}
+
+	return result, nil
+}
+
+func UpsertMaps(database *sql.DB, maps []maps.Map) error {
 	for _, row := range maps {
 		_, err := database.Exec(`
 			INSERT INTO maps (name, ksf_map_id, tier, added, playtime_seconds, bonus, linear)

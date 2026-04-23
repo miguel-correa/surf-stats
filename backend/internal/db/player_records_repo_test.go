@@ -98,6 +98,7 @@ func openTestDatabase(t *testing.T) *sql.DB {
 	for _, path := range []string{
 		migrationPath(t, "../../migrations/001_create_maps.sql"),
 		migrationPath(t, "../../migrations/002_create_player_map_records.sql"),
+		migrationPath(t, "../../migrations/003_create_players.sql"),
 	} {
 		sqlBytes, err := os.ReadFile(path)
 		if err != nil {

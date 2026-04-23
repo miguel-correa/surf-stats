@@ -2,11 +2,15 @@ import { useState, useEffect } from 'react';
 import type { PaginatedMaps } from '../types/Map';
 
 export type SortColumn = 'difficulty' | 'completions';
+export type CompletionFilter = 'all' | 'completed' | 'incomplete';
 
 export interface MapFilters {
     tiers: number[];
     search: string;
     linear: 'all' | 'linear' | 'staged';
+    playerIds: string[];
+    primaryPlayerId: string;
+    completion: CompletionFilter;
     sort: SortColumn;
     order: 'asc' | 'desc';
 }
@@ -17,7 +21,7 @@ export function useMaps(filters: MapFilters,
         isLoading: boolean,
         error: string | null
     } {
-    // const [maps, setMaps] = useState<SurfMap[]>([])
+    const { page = 1, perPage = 10 } = options;
     const [paginatedData, setPaginatedData] = useState<PaginatedMaps | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
@@ -30,9 +34,11 @@ export function useMaps(filters: MapFilters,
                 if (filters.search) params.append('search', filters.search);
                 if (filters.linear === 'linear') params.append('linear', '1');
                 if (filters.linear === 'staged') params.append('linear', '0');
+                filters.playerIds.forEach((steamId) => params.append('steam_id', steamId));
+                if (filters.primaryPlayerId) params.append('primary_steam_id', filters.primaryPlayerId);
+                if (filters.completion !== 'all') params.append('completion_status', filters.completion);
                 params.append('sort', filters.sort)
                 params.append('order', filters.order)
-                const {page = 1, perPage = 10} = options;
                 params.append('page', page.toString())
                 params.append('per_page', perPage.toString())
 
@@ -52,7 +58,7 @@ export function useMaps(filters: MapFilters,
         }
 
         fetchMaps();
-    }, [filters.tiers, filters.search, filters.linear, filters.sort, filters.order, options.page, options.perPage])
+    }, [filters.tiers, filters.search, filters.linear, filters.playerIds, filters.primaryPlayerId, filters.completion, filters.sort, filters.order, page, perPage])
 
     return { paginatedData, isLoading, error }
 }
