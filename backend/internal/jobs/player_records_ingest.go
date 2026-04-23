@@ -1,10 +1,12 @@
 package jobs
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
 	"math/rand"
+	"net"
 	"sync"
 	"time"
 
@@ -29,11 +31,11 @@ type playerRecordResult struct {
 }
 
 func RunPlayerRecordsIngestion(database *sql.DB, steamID string) error {
-	return runPlayerRecordsIngestionWithWorkers(database, steamID, players.NewKSFScraper(), 4)
+	return runPlayerRecordsIngestionWithWorkers(database, steamID, players.NewKSFScraper(), 16)
 }
 
 func runPlayerRecordsIngestion(database *sql.DB, steamID string, scraper mainRecordScraper) error {
-	return runPlayerRecordsIngestionWithWorkers(database, steamID, scraper, 4)
+	return runPlayerRecordsIngestionWithWorkers(database, steamID, scraper, 16)
 }
 
 func runPlayerRecordsIngestionWithWorkers(database *sql.DB, steamID string, scraper mainRecordScraper, workerCount int) error {
@@ -41,6 +43,8 @@ func runPlayerRecordsIngestionWithWorkers(database *sql.DB, steamID string, scra
 	if err != nil {
 		return err
 	}
+	totalMaps := len(maps)
+	log.Printf("player-records-ingest: start steam_id=%s maps=%d", steamID, totalMaps)
 
 	if workerCount < 1 {
 		workerCount = 1
@@ -83,32 +87,32 @@ func runPlayerRecordsIngestionWithWorkers(database *sql.DB, steamID string, scra
 
 	var failures []string
 	var player *models.Player
+	processed := 0
 	for result := range resultsCh {
+		processed++
 		if result.Err != nil {
 			failures = append(failures, fmt.Sprintf("%s: %v", result.MapName, result.Err))
 			log.Printf("player-records-ingest: skipping map=%s after error: %v", result.MapName, result.Err)
-			continue
-		}
-		if result.Record == nil {
-			continue
-		}
+		} else if result.Record != nil {
+			if player == nil {
+				playerID := result.Record.PlayerID
+				player = &models.Player{
+					SteamID:  result.Record.SteamID,
+					PlayerID: &playerID,
+					Name:     result.Record.PlayerName,
+				}
+			}
 
-		if player == nil {
-			playerID := result.Record.PlayerID
-			player = &models.Player{
-				SteamID:  result.Record.SteamID,
-				PlayerID: &playerID,
-				Name:     result.Record.PlayerName,
+			inserted, err := db.SavePlayerMapRecordIfImproved(database, *result.Record)
+			if err != nil {
+				failures = append(failures, fmt.Sprintf("%s: %v", result.MapName, err))
+			} else if inserted {
+				log.Printf("player-records-ingest: stored PB steam_id=%s map=%s time_ms=%d", steamID, result.MapName, result.Record.SurfTimeMS)
 			}
 		}
 
-		inserted, err := db.SavePlayerMapRecordIfImproved(database, *result.Record)
-		if err != nil {
-			failures = append(failures, fmt.Sprintf("%s: %v", result.MapName, err))
-			continue
-		}
-		if inserted {
-			log.Printf("player-records-ingest: stored PB steam_id=%s map=%s time_ms=%d", steamID, result.MapName, result.Record.SurfTimeMS)
+		if processed%25 == 0 || processed == totalMaps {
+			log.Printf("player-records-ingest: %d/%d processed", processed, totalMaps)
 		}
 	}
 
@@ -154,6 +158,14 @@ func isRetryablePlayerRecordError(err error) bool {
 
 	if err == nil {
 		return false
+	}
+
+	if err == context.DeadlineExceeded {
+		return true
+	}
+
+	if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+		return true
 	}
 
 	r, ok := err.(retryable)

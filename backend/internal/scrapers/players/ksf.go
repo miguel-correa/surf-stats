@@ -47,7 +47,7 @@ func (e HTTPStatusError) Retryable() bool {
 
 func NewKSFScraper() *KSFScraper {
 	return newKSFScraper("https://ksf.surf/api/players", &http.Client{
-		Timeout: 10 * time.Second,
+		Timeout: 30 * time.Second,
 	})
 }
 
