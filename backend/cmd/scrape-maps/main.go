@@ -10,6 +10,7 @@ import (
 func main() {
 
 	database := db.Open("data/surfstats.db")
+	defer database.Close()
 
 	if err := db.Migrate(database, migrations.FS); err != nil {
 		log.Fatalf("migrate: %v", err)

@@ -76,15 +76,16 @@ func RunWeeklyIngestion(database *sql.DB, seedSteamID string) error {
 	}()
 
 	processed := 0
+	var failures []string
 	for result := range resultsCh {
 		processed++
 
 		if result.Err != nil {
-			return fmt.Errorf("error fetching completions for map %q: %w", result.MapName, result.Err)
-		}
-
-		if err := db.UpdateMapCompletionsByMapIDTx(tx, result.MapID, result.Comps); err != nil {
-			return fmt.Errorf("update completions map_id=%d: %w", result.MapID, err)
+			failures = append(failures, fmt.Sprintf("%s: %v", result.MapName, result.Err))
+			log.Printf("weekly-ingest: skipping map=%s: %v", result.MapName, result.Err)
+		} else if err := db.UpdateMapCompletionsByMapIDTx(tx, result.MapID, result.Comps); err != nil {
+			failures = append(failures, fmt.Sprintf("%s: %v", result.MapName, err))
+			log.Printf("weekly-ingest: failed to update map=%s: %v", result.MapName, err)
 		}
 
 		if processed%25 == 0 || processed == len(scrapedMaps) {
@@ -95,6 +96,11 @@ func RunWeeklyIngestion(database *sql.DB, seedSteamID string) error {
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("failed to commit tx: %w", err)
 	}
+
+	if len(failures) > 0 {
+		log.Printf("weekly-ingest: completed with %d skipped map(s); first failure: %s", len(failures), failures[0])
+	}
+
 	log.Printf("weekly-ingest: done")
 	return nil
 }

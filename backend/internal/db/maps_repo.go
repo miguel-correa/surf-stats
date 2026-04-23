@@ -42,6 +42,14 @@ func GetMaps(database *sql.DB, filters MapFilters) (PaginatedMaps, error) {
 	var paginatedMaps PaginatedMaps
 	paginatedMaps.Maps = []models.Map{}
 
+	allowedCols := map[string]bool{"comp_per_hour": true, "completions": true}
+	if !allowedCols[filters.SortCol] {
+		filters.SortCol = "comp_per_hour"
+	}
+	if filters.Order != "asc" && filters.Order != "desc" {
+		filters.Order = "desc"
+	}
+
 	args := []any{}
 	query := buildMapsSelectQuery(filters, &args)
 	query += " ORDER BY " + filters.SortCol + " " + filters.Order

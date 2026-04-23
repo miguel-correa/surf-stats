@@ -12,5 +12,14 @@ func Open(path string) *sql.DB {
 	if err != nil {
 		log.Fatal(err)
 	}
+	for _, pragma := range []string{
+		"PRAGMA journal_mode=WAL",
+		"PRAGMA busy_timeout=5000",
+		"PRAGMA foreign_keys=ON",
+	} {
+		if _, err := db.Exec(pragma); err != nil {
+			log.Fatalf("%s: %v", pragma, err)
+		}
+	}
 	return db
 }

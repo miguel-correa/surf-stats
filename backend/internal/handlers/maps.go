@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 	"surfstats/internal/db"
@@ -86,7 +87,8 @@ func GetMaps(database *sql.DB) http.HandlerFunc {
 
 		maps, err := db.GetMaps(database, filters)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			log.Printf("GetMaps error: %v", err)
+			http.Error(w, "internal server error", http.StatusInternalServerError)
 			return
 		}
 
