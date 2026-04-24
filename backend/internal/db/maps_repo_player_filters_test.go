@@ -57,8 +57,8 @@ func TestGetMapsIncludesPlayerRecordFields(t *testing.T) {
 	if second.PlayerRank == nil || *second.PlayerRank != 142 {
 		t.Fatalf("second.PlayerRank = %v, want 142", second.PlayerRank)
 	}
-	if len(second.PlayerRecords) != 1 {
-		t.Fatalf("len(second.PlayerRecords) = %d, want 1", len(second.PlayerRecords))
+	if len(second.PlayerRecords) != 2 {
+		t.Fatalf("len(second.PlayerRecords) = %d, want 2", len(second.PlayerRecords))
 	}
 	if !second.PlayerRecords[0].Completed {
 		t.Fatal("second.PlayerRecords[0].Completed = false, want true")
@@ -224,6 +224,16 @@ func seedMapsForPlayerFilterTests(t *testing.T, database *sql.DB) {
 	`)
 	if err != nil {
 		t.Fatalf("seed maps failed: %v", err)
+	}
+
+	_, err = database.Exec(`
+		INSERT INTO players (steam_id, player_id, name)
+		VALUES
+			('STEAM_0:1:75949009', 949217, 'Player1'),
+			('STEAM_0:1:00000001', 111111, 'Player2')
+	`)
+	if err != nil {
+		t.Fatalf("seed players failed: %v", err)
 	}
 }
 

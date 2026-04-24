@@ -153,36 +153,32 @@ export function MapTable({ maps, sortCol, sortOrder, onSort, primaryPlayerId, pl
                                 {isExpanded && (
                                     <tr className="bg-gray-950/40">
                                         <td colSpan={7} className="px-6 py-4">
-                                            {(map.player_records ?? []).length > 0 ? (
-                                                <table className="w-full text-sm">
-                                                    <thead>
-                                                        <tr className="text-xs font-semibold uppercase text-gray-400">
-                                                            <th className="py-2 pr-4 text-left">Player</th>
-                                                            <th className="py-2 pr-4 text-left">Time</th>
-                                                            <th className="py-2 pr-4 text-left">Rank</th>
-                                                            <th className="py-2 text-left">Group</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody className="divide-y divide-white/5">
-                                                        {[...(map.player_records ?? [])].sort((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity)).map((record) => {
-                                                            const isPrimary = record.steam_id === primaryPlayerId;
-                                                            return (
-                                                                <tr key={record.steam_id} className={isPrimary ? 'bg-cyan-500/10' : ''}>
-                                                                    <td className="py-2 pr-4 font-semibold text-white">
-                                                                        {playerLabels[record.steam_id] ?? record.steam_id}
-                                                                        {isPrimary && <span className="ml-2 text-xs text-cyan-300">★</span>}
-                                                                    </td>
-                                                                    <td className="py-2 pr-4 font-semibold text-cyan-100">{formatTimeMs(record.best_time_ms ?? null)}</td>
-                                                                    <td className="py-2 pr-4 text-gray-300">{record.rank != null ? `#${record.rank}` : '—'}</td>
-                                                                    <td className="py-2 text-gray-300">{formatGroupTier(record.group_tier)}</td>
-                                                                </tr>
-                                                            );
-                                                        })}
-                                                    </tbody>
-                                                </table>
-                                            ) : (
-                                                <p className="text-sm text-gray-400">Select at least one player to compare times on this map.</p>
-                                            )}
+                                            <table className="w-full text-sm">
+                                                <thead>
+                                                    <tr className="text-xs font-semibold uppercase text-gray-400">
+                                                        <th className="py-2 pr-4 text-left">Player</th>
+                                                        <th className="py-2 pr-4 text-left">Time</th>
+                                                        <th className="py-2 pr-4 text-left">Rank</th>
+                                                        <th className="py-2 text-left">Group</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-white/5">
+                                                    {[...(map.player_records ?? [])].sort((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity)).map((record) => {
+                                                        const isPrimary = record.steam_id === primaryPlayerId;
+                                                        return (
+                                                            <tr key={record.steam_id} className={isPrimary ? 'bg-cyan-500/10' : ''}>
+                                                                <td className="py-2 pr-4 font-semibold text-white">
+                                                                    {playerLabels[record.steam_id] ?? record.steam_id}
+                                                                    {isPrimary && <span className="ml-2 text-xs text-cyan-300">★</span>}
+                                                                </td>
+                                                                <td className="py-2 pr-4 font-semibold text-cyan-100">{formatTimeMs(record.best_time_ms ?? null)}</td>
+                                                                <td className="py-2 pr-4 text-gray-300">{record.rank != null ? `#${record.rank}` : '—'}</td>
+                                                                <td className="py-2 text-gray-300">{formatGroupTier(record.group_tier)}</td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
                                         </td>
                                     </tr>
                                 )}

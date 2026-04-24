@@ -108,13 +108,23 @@ func GetMaps(database *sql.DB, filters MapFilters) (PaginatedMaps, error) {
 		return PaginatedMaps{}, err
 	}
 
-	if len(filters.SteamIDs) > 0 && len(mapIDs) > 0 {
-		summariesByMapID, err := GetBestPlayerMapSummariesForMaps(database, filters.SteamIDs, mapIDs)
+	if len(mapIDs) > 0 {
+		allPlayers, err := ListPlayers(database)
 		if err != nil {
 			return PaginatedMaps{}, err
 		}
-		for i := range paginatedMaps.Maps {
-			paginatedMaps.Maps[i].PlayerRecords = summariesByMapID[paginatedMaps.Maps[i].KSFMapID]
+		if len(allPlayers) > 0 {
+			allSteamIDs := make([]string, len(allPlayers))
+			for i, p := range allPlayers {
+				allSteamIDs[i] = p.SteamID
+			}
+			summariesByMapID, err := GetBestPlayerMapSummariesForMaps(database, allSteamIDs, mapIDs)
+			if err != nil {
+				return PaginatedMaps{}, err
+			}
+			for i := range paginatedMaps.Maps {
+				paginatedMaps.Maps[i].PlayerRecords = summariesByMapID[paginatedMaps.Maps[i].KSFMapID]
+			}
 		}
 	}
 
