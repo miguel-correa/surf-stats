@@ -77,6 +77,8 @@ function App() {
   const [storedFilters, setStoredFilters] = useState<MapFilters>(getInitialFilters)
   const [page, setPage] = useState(1)
   const [searchText, setSearchText] = useState(storedFilters.search)
+  const [mapsRefreshKey, setMapsRefreshKey] = useState(0)
+  const [expandedMapIds, setExpandedMapIds] = useState<number[]>([])
   const validPlayerIds = useMemo(() => new Set(players.map((player) => player.steam_id)), [players]);
   const filters = useMemo(() => {
     if (playersLoading || playersError) {
@@ -98,7 +100,10 @@ function App() {
       primaryPlayerId: nextSelection.primaryPlayerId,
     };
   }, [playersError, playersLoading, storedFilters, validPlayerIds]);
-  const { paginatedData, isLoading, error } = useMaps(filters, { page });
+  const { paginatedData, isLoading, error } = useMaps(filters, { page, refreshKey: mapsRefreshKey });
+  const hasActiveRefresh = (paginatedData?.maps ?? []).some((map) =>
+    map.record_refresh_status === 'queued' || map.record_refresh_status === 'running'
+  );
 
   useEffect(() => {
     const id = setTimeout(() => {
@@ -122,6 +127,17 @@ function App() {
     window.localStorage.removeItem(PRIMARY_PLAYER_STORAGE_KEY);
   }, [filters.playerIds, filters.primaryPlayerId]);
 
+  useEffect(() => {
+    if (!hasActiveRefresh) {
+      return;
+    }
+
+    const id = window.setInterval(() => {
+      setMapsRefreshKey((value) => value + 1);
+    }, 5000);
+    return () => window.clearInterval(id);
+  }, [hasActiveRefresh]);
+
   const handleFiltersChange = (nextFilters: MapFilters) => {
     if (nextFilters.search !== searchText) {
       setSearchText(nextFilters.search);
@@ -135,6 +151,13 @@ function App() {
     handleFiltersChange({ ...filters, sort: column, order: newOrder });
   };
 
+  const handleToggleExpandedMap = (mapID: number) => {
+    setExpandedMapIds((current) =>
+      current.includes(mapID)
+        ? current.filter((id) => id !== mapID)
+        : [...current, mapID]
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-800 to-gray-700 p-8">
@@ -181,6 +204,9 @@ function App() {
                 onSort={handleSort}
                 primaryPlayerId={filters.primaryPlayerId}
                 playerLabels={playerLabels}
+                expandedMapIds={expandedMapIds}
+                onToggleExpandedMap={handleToggleExpandedMap}
+                onRefreshRecords={() => setMapsRefreshKey((value) => value + 1)}
               />
               <Pagination
                 currentPage={page}

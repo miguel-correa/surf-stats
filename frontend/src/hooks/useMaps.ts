@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { PaginatedMaps } from '../types/Map';
 
 export type SortColumn = 'difficulty' | 'completions';
@@ -16,21 +16,26 @@ export interface MapFilters {
 }
 
 export function useMaps(filters: MapFilters,
-    options: { page?: number, perPage?: number } = {}): {
+    options: { page?: number, perPage?: number, refreshKey?: number } = {}): {
         paginatedData: PaginatedMaps | null,
         isLoading: boolean,
         error: string | null
     } {
-    const { page = 1, perPage = 10 } = options;
+    const { page = 1, perPage = 10, refreshKey = 0 } = options;
     const [paginatedData, setPaginatedData] = useState<PaginatedMaps | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const previousRefreshKey = useRef(refreshKey);
+    const hasLoadedData = useRef(false);
 
     useEffect(() => {
         const controller = new AbortController();
 
         async function fetchMaps() {
-            setIsLoading(true);
+            const isBackgroundRefresh = hasLoadedData.current && refreshKey !== previousRefreshKey.current;
+            if (!isBackgroundRefresh) {
+                setIsLoading(true);
+            }
             setError(null);
 
             try {
@@ -57,11 +62,13 @@ export function useMaps(filters: MapFilters,
 
                 const data: PaginatedMaps = await response.json();
                 setPaginatedData(data);
+                hasLoadedData.current = true;
+                previousRefreshKey.current = refreshKey;
             } catch (err) {
                 if (controller.signal.aborted) return;
                 setError(err instanceof Error ? err.message : 'An error occurred');
             } finally {
-                if (!controller.signal.aborted) {
+                if (!controller.signal.aborted && !isBackgroundRefresh) {
                     setIsLoading(false);
                 }
             }
@@ -70,7 +77,7 @@ export function useMaps(filters: MapFilters,
         fetchMaps();
 
         return () => controller.abort();
-    }, [filters.tiers, filters.search, filters.linear, filters.playerIds, filters.primaryPlayerId, filters.completion, filters.sort, filters.order, page, perPage])
+    }, [filters.tiers, filters.search, filters.linear, filters.playerIds, filters.primaryPlayerId, filters.completion, filters.sort, filters.order, page, perPage, refreshKey])
 
     return { paginatedData, isLoading, error }
 }

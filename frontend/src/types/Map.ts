@@ -21,6 +21,9 @@ export interface SurfMap {
     player_rank?: number | null;
     completed?: boolean | null;
     player_records?: PlayerMapSummary[];
+    record_refresh_available_at?: string | null;
+    record_refresh_status?: string;
+    record_refresh_failed_players: number;
 }
 
 export interface PaginatedMaps {
