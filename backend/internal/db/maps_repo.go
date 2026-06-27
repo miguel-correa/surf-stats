@@ -109,6 +109,19 @@ func GetMaps(database *sql.DB, filters MapFilters) (PaginatedMaps, error) {
 	}
 
 	if len(mapIDs) > 0 {
+		refreshStates, err := GetMapRecordRefreshStatesForMaps(database, mapIDs)
+		if err != nil {
+			return PaginatedMaps{}, err
+		}
+		for i := range paginatedMaps.Maps {
+			if state, ok := refreshStates[paginatedMaps.Maps[i].KSFMapID]; ok {
+				availableAt := state.CooldownAvailableAt()
+				paginatedMaps.Maps[i].RecordRefreshAvailableAt = &availableAt
+				paginatedMaps.Maps[i].RecordRefreshStatus = state.Status
+				paginatedMaps.Maps[i].RecordRefreshFailedPlayers = state.FailedPlayers
+			}
+		}
+
 		allPlayers, err := ListPlayers(database)
 		if err != nil {
 			return PaginatedMaps{}, err
@@ -350,19 +363,13 @@ func GetBestPlayerMapSummariesForMaps(database *sql.DB, steamIDs []string, mapID
 	return result, nil
 }
 
-func UpsertMaps(database *sql.DB, maps []maps.Map) error {
-	for _, row := range maps {
-		_, err := database.Exec(`
+func UpsertMaps(database *sql.DB, scrapedMaps []maps.Map) ([]maps.Map, error) {
+	newMaps := make([]maps.Map, 0)
+	for _, row := range scrapedMaps {
+		result, err := database.Exec(`
 			INSERT INTO maps (name, ksf_map_id, tier, added, playtime_seconds, bonus, linear)
 			VALUES (?, ?, ?, ?, ?, ?, ?)
-			ON CONFLICT(ksf_map_id) DO UPDATE SET
-			  name = excluded.name,
-			  tier = excluded.tier,
-			  added = excluded.added,
-			  playtime_seconds = excluded.playtime_seconds,
-			  bonus = excluded.bonus,
-			  linear = excluded.linear,
-			  updated_at = CURRENT_TIMESTAMP
+			ON CONFLICT(ksf_map_id) DO NOTHING
 		`,
 			row.Name,
 			row.MapID,
@@ -374,11 +381,42 @@ func UpsertMaps(database *sql.DB, maps []maps.Map) error {
 		)
 
 		if err != nil {
-			return err
+			return nil, err
+		}
+
+		inserted, err := result.RowsAffected()
+		if err != nil {
+			return nil, err
+		}
+		if inserted > 0 {
+			newMaps = append(newMaps, row)
+			continue
+		}
+
+		if _, err := database.Exec(`
+			UPDATE maps
+			SET name = ?,
+				tier = ?,
+				added = ?,
+				playtime_seconds = ?,
+				bonus = ?,
+				linear = ?,
+				updated_at = CURRENT_TIMESTAMP
+			WHERE ksf_map_id = ?
+		`,
+			row.Name,
+			row.Tier,
+			row.Created,
+			row.Playtime,
+			row.BCount,
+			row.IsLinear,
+			row.MapID,
+		); err != nil {
+			return nil, err
 		}
 	}
 
-	return nil
+	return newMaps, nil
 }
 
 func UpdateMapCompletionsByMapID(database *sql.DB, ksfMapID int, completions int) error {

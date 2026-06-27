@@ -40,7 +40,7 @@ func TestFetchMainMapRecordParsesZoneZeroPB(t *testing.T) {
 		}),
 	})
 
-	record, err := scraper.FetchMainMapRecord("STEAM_0:1:75949009", "surf_kz_protraining")
+	record, err := scraper.FetchMainMapRecord("STEAM_0:1:75949009", "surf_kz_protraining", 285)
 	if err != nil {
 		t.Fatalf("FetchMainMapRecord returned error: %v", err)
 	}
@@ -111,7 +111,7 @@ func TestFetchMainMapRecordReturnsNilWhenZoneZeroMissingOrUnset(t *testing.T) {
 				}),
 			})
 
-			record, err := scraper.FetchMainMapRecord("STEAM_0:1:75949009", "surf_kz_protraining")
+			record, err := scraper.FetchMainMapRecord("STEAM_0:1:75949009", "surf_kz_protraining", 285)
 			if err != nil {
 				t.Fatalf("FetchMainMapRecord returned error: %v", err)
 			}

@@ -34,8 +34,12 @@ func RunWeeklyIngestion(database *sql.DB, seedSteamID string) ([]string, error) 
 	}
 	log.Printf("weekly-ingest: fetched maps=%d", len(scrapedMaps))
 
-	if err := db.UpsertMaps(database, scrapedMaps); err != nil {
+	newMaps, err := db.UpsertMaps(database, scrapedMaps)
+	if err != nil {
 		return nil, fmt.Errorf("error upserting maps: %v", err)
+	}
+	for _, newMap := range newMaps {
+		log.Printf("weekly-ingest: new map map_id=%d name=%s", newMap.MapID, newMap.Name)
 	}
 
 	names := make([]string, len(scrapedMaps))

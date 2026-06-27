@@ -19,11 +19,11 @@ func TestMigrateAppliesAllMigrations(t *testing.T) {
 	if err := database.QueryRow("SELECT COUNT(*) FROM schema_migrations").Scan(&count); err != nil {
 		t.Fatalf("count schema_migrations failed: %v", err)
 	}
-	if count != 3 {
-		t.Fatalf("schema_migrations count = %d, want 3", count)
+	if count != 5 {
+		t.Fatalf("schema_migrations count = %d, want 5", count)
 	}
 
-	for _, table := range []string{"maps", "player_map_records", "players"} {
+	for _, table := range []string{"maps", "player_map_records", "players", "map_record_refreshes"} {
 		var name string
 		err := database.QueryRow("SELECT name FROM sqlite_master WHERE type='table' AND name=?", table).Scan(&name)
 		if err != nil {
@@ -47,8 +47,8 @@ func TestMigrateIsIdempotent(t *testing.T) {
 	if err := database.QueryRow("SELECT COUNT(*) FROM schema_migrations").Scan(&count); err != nil {
 		t.Fatalf("count schema_migrations failed: %v", err)
 	}
-	if count != 3 {
-		t.Fatalf("schema_migrations count = %d, want 3", count)
+	if count != 5 {
+		t.Fatalf("schema_migrations count = %d, want 5", count)
 	}
 }
 

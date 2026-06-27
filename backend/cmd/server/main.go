@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"surfstats/internal/db"
 	"surfstats/internal/handlers"
+	"surfstats/internal/jobs"
 	"surfstats/migrations"
 	"syscall"
 	"time"
@@ -16,7 +17,7 @@ import (
 func corsMiddleware(allowedOrigin string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
-		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
 		if r.Method == "OPTIONS" {
@@ -47,6 +48,7 @@ func main() {
 	})
 
 	mux.Handle("/api/maps", handlers.GetMaps(database))
+	mux.Handle("/api/maps/", handlers.RefreshMapRecords(database))
 	mux.Handle("/api/players", handlers.GetPlayers(database))
 
 	corsOrigin := os.Getenv("CORS_ORIGIN")
@@ -55,6 +57,9 @@ func main() {
 	}
 
 	log.Println("Server running on :8080")
+	workerCtx, stopWorker := context.WithCancel(context.Background())
+	defer stopWorker()
+	go jobs.RunMapRecordRefreshQueueWorker(workerCtx, database, 30*time.Second)
 
 	srv := &http.Server{
 		Addr:         ":8080",
@@ -74,6 +79,7 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	log.Println("Shutting down server...")
+	stopWorker()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

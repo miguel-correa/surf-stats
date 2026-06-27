@@ -16,7 +16,7 @@ import (
 )
 
 type mainRecordScraper interface {
-	FetchMainMapRecord(steamID string, mapName string) (*models.PlayerMapRecord, error)
+	FetchMainMapRecord(steamID string, mapName string, expectedMapID int) (*models.PlayerMapRecord, error)
 }
 
 type playerRecordJob struct {
@@ -59,7 +59,7 @@ func runPlayerRecordsIngestionWithWorkers(database *sql.DB, steamID string, scra
 		go func() {
 			defer wg.Done()
 			for job := range jobsCh {
-				record, err := fetchMainMapRecordWithRetry(scraper, steamID, job.MapName)
+				record, err := fetchMainMapRecordWithRetry(scraper, steamID, job.MapName, job.KSFMapID)
 				resultsCh <- playerRecordResult{
 					MapName: job.MapName,
 					Record:  record,
@@ -107,7 +107,13 @@ func runPlayerRecordsIngestionWithWorkers(database *sql.DB, steamID string, scra
 			if err != nil {
 				failures = append(failures, fmt.Sprintf("%s: %v", result.MapName, err))
 			} else if inserted {
-				log.Printf("player-records-ingest: stored PB steam_id=%s map=%s time_ms=%d", steamID, result.MapName, result.Record.SurfTimeMS)
+				log.Printf(
+					"player-records-ingest: new record steam_id=%s map=%s time_ms=%d rank=%d",
+					steamID,
+					result.MapName,
+					result.Record.SurfTimeMS,
+					result.Record.Rank,
+				)
 			}
 		}
 
@@ -130,12 +136,12 @@ func runPlayerRecordsIngestionWithWorkers(database *sql.DB, steamID string, scra
 	return nil
 }
 
-func fetchMainMapRecordWithRetry(scraper mainRecordScraper, steamID string, mapName string) (*models.PlayerMapRecord, error) {
+func fetchMainMapRecordWithRetry(scraper mainRecordScraper, steamID string, mapName string, expectedMapID int) (*models.PlayerMapRecord, error) {
 	const maxAttempts = 3
 
 	var lastErr error
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		record, err := scraper.FetchMainMapRecord(steamID, mapName)
+		record, err := scraper.FetchMainMapRecord(steamID, mapName, expectedMapID)
 		if err == nil {
 			return record, nil
 		}

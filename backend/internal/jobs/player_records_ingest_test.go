@@ -231,7 +231,7 @@ type stubMainRecordScraper struct {
 	errorsByMapName  map[string]error
 }
 
-func (s stubMainRecordScraper) FetchMainMapRecord(_ string, mapName string) (*models.PlayerMapRecord, error) {
+func (s stubMainRecordScraper) FetchMainMapRecord(_ string, mapName string, _ int) (*models.PlayerMapRecord, error) {
 	if err, ok := s.errorsByMapName[mapName]; ok {
 		return nil, err
 	}
@@ -248,7 +248,7 @@ type flakyMainRecordScraper struct {
 	calls                 int
 }
 
-func (s *flakyMainRecordScraper) FetchMainMapRecord(_ string, mapName string) (*models.PlayerMapRecord, error) {
+func (s *flakyMainRecordScraper) FetchMainMapRecord(_ string, mapName string, _ int) (*models.PlayerMapRecord, error) {
 	s.calls++
 	if s.failuresBeforeSuccess[mapName] > 0 {
 		s.failuresBeforeSuccess[mapName]--
@@ -265,7 +265,7 @@ type blockingMainRecordScraper struct {
 	maxConcurrent    int
 }
 
-func (s *blockingMainRecordScraper) FetchMainMapRecord(_ string, mapName string) (*models.PlayerMapRecord, error) {
+func (s *blockingMainRecordScraper) FetchMainMapRecord(_ string, mapName string, _ int) (*models.PlayerMapRecord, error) {
 	s.mu.Lock()
 	s.inFlight++
 	if s.inFlight > s.maxConcurrent {
@@ -326,4 +326,3 @@ func playerUpsertAuditCount(t *testing.T, database *sql.DB) int {
 	}
 	return count
 }
-

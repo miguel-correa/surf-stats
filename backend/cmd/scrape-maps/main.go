@@ -22,8 +22,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := db.UpsertMaps(database, scrapedMaps); err != nil {
+	newMaps, err := db.UpsertMaps(database, scrapedMaps)
+	if err != nil {
 		log.Fatal(err)
+	}
+	for _, newMap := range newMaps {
+		log.Printf("scrape-maps: new map map_id=%d name=%s", newMap.MapID, newMap.Name)
 	}
 
 	// os.WriteFile("data/ksf_maps.html", html, 0644)

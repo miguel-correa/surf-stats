@@ -82,9 +82,13 @@ func (s *KSFScraper) FetchMapCompletionsFromPlayerRecord(steamID string, mapName
 	if err != nil {
 		return -1, -1, err
 	}
-	mapID, err := strconv.Atoi(response.MapID)
-	if err != nil {
-		return -1, -1, fmt.Errorf("failed parsing mapID to int: %v", err)
+
+	mapID := 0
+	if strings.TrimSpace(response.MapID) != "" {
+		mapID, err = strconv.Atoi(response.MapID)
+		if err != nil {
+			return -1, -1, fmt.Errorf("failed parsing mapID to int: %v", err)
+		}
 	}
 	for _, zone := range response.Zones {
 		if zone.ZoneID == 0 {
@@ -95,20 +99,23 @@ func (s *KSFScraper) FetchMapCompletionsFromPlayerRecord(steamID string, mapName
 	return -1, -1, fmt.Errorf("failed to find completions for given map")
 }
 
-func (s *KSFScraper) FetchMainMapRecord(steamID string, mapName string) (*models.PlayerMapRecord, error) {
+func (s *KSFScraper) FetchMainMapRecord(steamID string, mapName string, expectedMapID int) (*models.PlayerMapRecord, error) {
 	response, err := s.fetchMapRecords(steamID, mapName)
 	if err != nil {
 		return nil, err
 	}
 
-	mapID, err := strconv.Atoi(response.MapID)
-	if err != nil {
-		return nil, fmt.Errorf("failed parsing mapID to int: %v", err)
-	}
-
 	for _, zone := range response.Zones {
 		if zone.ZoneID != 0 || zone.SurfTime == nil {
 			continue
+		}
+
+		mapID := expectedMapID
+		if strings.TrimSpace(response.MapID) != "" {
+			mapID, err = strconv.Atoi(response.MapID)
+			if err != nil {
+				return nil, fmt.Errorf("failed parsing mapID to int: %v", err)
+			}
 		}
 
 		record := models.PlayerMapRecord{
@@ -167,8 +174,6 @@ func (s *KSFScraper) fetchMapRecords(steamID string, mapName string) (mapRecords
 		log.Printf("ksf-scraper: GET %s read body failed after %s: %v", reqURL, time.Since(start), err)
 		return mapRecordsResponse{}, err
 	}
-
-	log.Printf("ksf-scraper: GET %s status=200 bytes=%d duration=%s", reqURL, len(body), elapsed)
 
 	var response mapRecordsResponse
 	if err := json.Unmarshal(body, &response); err != nil {
