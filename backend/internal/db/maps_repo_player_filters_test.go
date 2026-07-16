@@ -202,6 +202,88 @@ func TestGetMapsReturnsAllSelectedPlayerSummariesAndPrimaryProjection(t *testing
 	}
 }
 
+func TestGetMapsSortsByTier(t *testing.T) {
+	database := openPlayerMapsTestDatabase(t)
+
+	seedMapsForPlayerFilterTests(t, database)
+
+	asc, err := GetMaps(database, MapFilters{
+		SortCol:    "tier",
+		Order:      "asc",
+		Page:       1,
+		PerPage:    10,
+		Completion: CompletionAll,
+	})
+	if err != nil {
+		t.Fatalf("GetMaps tier asc returned error: %v", err)
+	}
+	assertMapOrder(t, asc.Maps, []int{1, 2, 3})
+
+	desc, err := GetMaps(database, MapFilters{
+		SortCol:    "tier",
+		Order:      "desc",
+		Page:       1,
+		PerPage:    10,
+		Completion: CompletionAll,
+	})
+	if err != nil {
+		t.Fatalf("GetMaps tier desc returned error: %v", err)
+	}
+	assertMapOrder(t, desc.Maps, []int{3, 2, 1})
+}
+
+func TestGetMapsSortsByPrimaryGroup(t *testing.T) {
+	database := openPlayerMapsTestDatabase(t)
+
+	seedMapsForPlayerFilterTests(t, database)
+	group0 := 0
+	group2 := 2
+	savePlayerPB(t, database, models.PlayerMapRecord{
+		SteamID:    "STEAM_0:1:75949009",
+		PlayerID:   949217,
+		KSFMapID:   1,
+		SurfTimeMS: 38565,
+		Rank:       2306,
+		TotalRanks: 27893,
+		GroupTier:  &group2,
+	})
+	savePlayerPB(t, database, models.PlayerMapRecord{
+		SteamID:    "STEAM_0:1:75949009",
+		PlayerID:   949217,
+		KSFMapID:   2,
+		SurfTimeMS: 205000,
+		Rank:       100,
+		TotalRanks: 5000,
+		GroupTier:  &group0,
+	})
+
+	asc, err := GetMaps(database, MapFilters{
+		PrimarySteamID: "STEAM_0:1:75949009",
+		SortCol:        "primary_group",
+		Order:          "asc",
+		Page:           1,
+		PerPage:        10,
+		Completion:     CompletionAll,
+	})
+	if err != nil {
+		t.Fatalf("GetMaps primary_group asc returned error: %v", err)
+	}
+	assertMapOrder(t, asc.Maps, []int{2, 1, 3})
+
+	desc, err := GetMaps(database, MapFilters{
+		PrimarySteamID: "STEAM_0:1:75949009",
+		SortCol:        "primary_group",
+		Order:          "desc",
+		Page:           1,
+		PerPage:        10,
+		Completion:     CompletionAll,
+	})
+	if err != nil {
+		t.Fatalf("GetMaps primary_group desc returned error: %v", err)
+	}
+	assertMapOrder(t, desc.Maps, []int{3, 1, 2})
+}
+
 func openPlayerMapsTestDatabase(t *testing.T) *sql.DB {
 	t.Helper()
 	database := Open("file::memory:?cache=shared")
@@ -252,3 +334,14 @@ func savePlayerPB(t *testing.T, database *sql.DB, record models.PlayerMapRecord)
 	}
 }
 
+func assertMapOrder(t *testing.T, maps []models.Map, want []int) {
+	t.Helper()
+	if len(maps) != len(want) {
+		t.Fatalf("len(maps) = %d, want %d", len(maps), len(want))
+	}
+	for i, mapRef := range maps {
+		if mapRef.KSFMapID != want[i] {
+			t.Fatalf("maps[%d].KSFMapID = %d, want %d", i, mapRef.KSFMapID, want[i])
+		}
+	}
+}

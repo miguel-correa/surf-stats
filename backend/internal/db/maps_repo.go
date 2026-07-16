@@ -42,7 +42,7 @@ func GetMaps(database *sql.DB, filters MapFilters) (PaginatedMaps, error) {
 	var paginatedMaps PaginatedMaps
 	paginatedMaps.Maps = []models.Map{}
 
-	allowedCols := map[string]bool{"comp_per_hour": true, "completions": true}
+	allowedCols := map[string]bool{"comp_per_hour": true, "completions": true, "tier": true, "primary_group": true}
 	if !allowedCols[filters.SortCol] {
 		filters.SortCol = "comp_per_hour"
 	}
@@ -52,7 +52,7 @@ func GetMaps(database *sql.DB, filters MapFilters) (PaginatedMaps, error) {
 
 	args := []any{}
 	query := buildMapsSelectQuery(filters, &args)
-	query += " ORDER BY " + filters.SortCol + " " + filters.Order
+	query += buildMapsOrderByClause(filters, &args)
 	query += " LIMIT ? OFFSET ?"
 	args = append(args, filters.PerPage)
 	args = append(args, (filters.Page-1)*filters.PerPage)
@@ -209,6 +209,32 @@ func buildMapsSelectQuery(filters MapFilters, args *[]any) string {
 	query += buildMapsWhereClause(filters, args)
 
 	return query
+}
+
+func buildMapsOrderByClause(filters MapFilters, args *[]any) string {
+	direction := strings.ToUpper(filters.Order)
+	if direction != "ASC" && direction != "DESC" {
+		direction = "DESC"
+	}
+
+	switch filters.SortCol {
+	case "completions":
+		return " ORDER BY completions " + direction + ", id ASC"
+	case "tier":
+		return " ORDER BY tier " + direction + ", id ASC"
+	case "primary_group":
+		*args = append(*args, filters.PrimarySteamID)
+		return `
+			ORDER BY COALESCE((
+				SELECT pr.group_tier
+				FROM player_map_records pr
+				WHERE pr.steam_id = ? AND pr.ksf_map_id = maps.ksf_map_id
+				ORDER BY pr.surf_time_ms ASC, pr.id DESC
+				LIMIT 1
+			), 7) ` + direction + `, id ASC`
+	default:
+		return " ORDER BY comp_per_hour " + direction + ", id ASC"
+	}
 }
 
 func buildMapsWhereClause(filters MapFilters, args *[]any) string {

@@ -147,7 +147,9 @@ function App() {
   };
 
   const handleSort = (column: SortColumn) => {
-    const newOrder = filters.sort === column && filters.order === 'desc' ? 'asc' : 'desc';
+    const newOrder = filters.sort === column
+      ? (filters.order === 'desc' ? 'asc' : 'desc')
+      : (column === 'tier' || column === 'primary_group' ? 'asc' : 'desc');
     handleFiltersChange({ ...filters, sort: column, order: newOrder });
   };
 

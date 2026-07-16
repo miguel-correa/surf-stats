@@ -15,8 +15,10 @@ import (
 func GetMaps(database *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		allowedSortCols := map[string]string{
-			"difficulty":  "comp_per_hour",
-			"completions": "completions",
+			"difficulty":    "comp_per_hour",
+			"completions":   "completions",
+			"tier":          "tier",
+			"primary_group": "primary_group",
 		}
 
 		q := r.URL.Query()

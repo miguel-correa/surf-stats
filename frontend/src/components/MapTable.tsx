@@ -174,11 +174,11 @@ export function MapTable({
                     <tr>
                         <th className="w-[4%] px-4 py-4 text-left text-xs font-bold text-gray-300 uppercase tracking-wider"> </th>
                         <th className="w-[30%] px-6 py-4 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Map Name</th>
-                        <th className="w-[8%] px-6 py-4 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Tier</th>
+                        <SortableHeader column="tier" label="Tier" sortCol={sortCol} sortOrder={sortOrder} onSort={onSort} width="w-[8%]" />
                         <SortableHeader column="completions" label="Completions" sortCol={sortCol} sortOrder={sortOrder} onSort={onSort} width="w-[14%]" />
                         <SortableHeader column="difficulty" label="Comp/Hour" sortCol={sortCol} sortOrder={sortOrder} onSort={onSort} width="w-[12%]" />
                         <th className="w-[16%] px-6 py-4 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">{primaryPlayerLabel} PB</th>
-                        <th className="w-[10%] px-6 py-4 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">{primaryPlayerLabel} Group</th>
+                        <SortableHeader column="primary_group" label={`${primaryPlayerLabel} Group`} sortCol={sortCol} sortOrder={sortOrder} onSort={onSort} width="w-[10%]" />
                         <th className="w-[6%] px-4 py-4 text-left text-xs font-bold text-gray-300 uppercase tracking-wider"> </th>
                     </tr>
                 </thead>

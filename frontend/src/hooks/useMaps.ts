@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { PaginatedMaps } from '../types/Map';
 
-export type SortColumn = 'difficulty' | 'completions';
+export type SortColumn = 'difficulty' | 'completions' | 'tier' | 'primary_group';
 export type CompletionFilter = 'all' | 'completed' | 'incomplete';
 
 export interface MapFilters {
