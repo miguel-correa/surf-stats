@@ -236,6 +236,12 @@ func TestGetMapsSortsByPrimaryGroup(t *testing.T) {
 	database := openPlayerMapsTestDatabase(t)
 
 	seedMapsForPlayerFilterTests(t, database)
+	if _, err := database.Exec(`
+		INSERT INTO maps (ksf_map_id, name, tier, added, completions, playtime_seconds, comp_per_hour, bonus, linear)
+		VALUES (4, 'surf_delta', 4, 1710000300, 50, 3600, 50.0, 0, 1)
+	`); err != nil {
+		t.Fatalf("seed tie-breaker map failed: %v", err)
+	}
 	group0 := 0
 	group2 := 2
 	savePlayerPB(t, database, models.PlayerMapRecord{
@@ -256,6 +262,15 @@ func TestGetMapsSortsByPrimaryGroup(t *testing.T) {
 		TotalRanks: 5000,
 		GroupTier:  &group0,
 	})
+	savePlayerPB(t, database, models.PlayerMapRecord{
+		SteamID:    "STEAM_0:1:75949009",
+		PlayerID:   949217,
+		KSFMapID:   4,
+		SurfTimeMS: 45000,
+		Rank:       300,
+		TotalRanks: 5000,
+		GroupTier:  &group2,
+	})
 
 	asc, err := GetMaps(database, MapFilters{
 		PrimarySteamID: "STEAM_0:1:75949009",
@@ -268,7 +283,7 @@ func TestGetMapsSortsByPrimaryGroup(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetMaps primary_group asc returned error: %v", err)
 	}
-	assertMapOrder(t, asc.Maps, []int{2, 1, 3})
+	assertMapOrder(t, asc.Maps, []int{2, 1, 4, 3})
 
 	desc, err := GetMaps(database, MapFilters{
 		PrimarySteamID: "STEAM_0:1:75949009",
@@ -281,7 +296,7 @@ func TestGetMapsSortsByPrimaryGroup(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetMaps primary_group desc returned error: %v", err)
 	}
-	assertMapOrder(t, desc.Maps, []int{3, 1, 2})
+	assertMapOrder(t, desc.Maps, []int{3, 1, 4, 2})
 }
 
 func openPlayerMapsTestDatabase(t *testing.T) *sql.DB {

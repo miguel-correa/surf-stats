@@ -231,7 +231,7 @@ func buildMapsOrderByClause(filters MapFilters, args *[]any) string {
 				WHERE pr.steam_id = ? AND pr.ksf_map_id = maps.ksf_map_id
 				ORDER BY pr.surf_time_ms ASC, pr.id DESC
 				LIMIT 1
-			), 7) ` + direction + `, id ASC`
+			), 7) ` + direction + `, comp_per_hour DESC, id ASC`
 	default:
 		return " ORDER BY comp_per_hour " + direction + ", id ASC"
 	}
