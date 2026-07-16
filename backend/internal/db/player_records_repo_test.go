@@ -22,6 +22,8 @@ func TestSavePlayerMapRecordIfImproved(t *testing.T) {
 		TotalRanks: 6614,
 		DateSet:    &initialDate,
 	}
+	initialGroupTier := 1
+	initial.GroupTier = &initialGroupTier
 
 	inserted, err := SavePlayerMapRecordIfImproved(database, initial)
 	if err != nil {
@@ -31,15 +33,27 @@ func TestSavePlayerMapRecordIfImproved(t *testing.T) {
 		t.Fatal("SavePlayerMapRecordIfImproved inserted = false, want true")
 	}
 
-	sameTime := initial
-	sameTime.Rank = 100
+	duplicate := initial
 
-	inserted, err = SavePlayerMapRecordIfImproved(database, sameTime)
+	inserted, err = SavePlayerMapRecordIfImproved(database, duplicate)
 	if err != nil {
-		t.Fatalf("SavePlayerMapRecordIfImproved same time returned error: %v", err)
+		t.Fatalf("SavePlayerMapRecordIfImproved duplicate returned error: %v", err)
 	}
 	if inserted {
-		t.Fatal("SavePlayerMapRecordIfImproved inserted = true for same time, want false")
+		t.Fatal("SavePlayerMapRecordIfImproved inserted = true for duplicate, want false")
+	}
+
+	sameTimeUpdatedMetadata := initial
+	sameTimeUpdatedMetadata.Rank = 100
+	updatedGroupTier := 2
+	sameTimeUpdatedMetadata.GroupTier = &updatedGroupTier
+
+	inserted, err = SavePlayerMapRecordIfImproved(database, sameTimeUpdatedMetadata)
+	if err != nil {
+		t.Fatalf("SavePlayerMapRecordIfImproved same time updated metadata returned error: %v", err)
+	}
+	if !inserted {
+		t.Fatal("SavePlayerMapRecordIfImproved inserted = false for same time updated metadata, want true")
 	}
 
 	worseTime := initial
@@ -82,8 +96,8 @@ func TestSavePlayerMapRecordIfImproved(t *testing.T) {
 	if err := database.QueryRow(`SELECT COUNT(*) FROM player_map_records`).Scan(&count); err != nil {
 		t.Fatalf("count query failed: %v", err)
 	}
-	if count != 2 {
-		t.Fatalf("record count = %d, want %d", count, 2)
+	if count != 3 {
+		t.Fatalf("record count = %d, want %d", count, 3)
 	}
 }
 

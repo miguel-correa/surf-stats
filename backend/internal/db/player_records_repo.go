@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"time"
 
 	"surfstats/internal/models"
 )
@@ -104,7 +105,9 @@ func SavePlayerMapRecordIfImproved(database *sql.DB, record models.PlayerMapReco
 	if latest != nil {
 		switch {
 		case record.SurfTimeMS == latest.SurfTimeMS:
-			return false, nil
+			if !playerMapRecordMetadataChanged(record, *latest) {
+				return false, nil
+			}
 		case record.SurfTimeMS > latest.SurfTimeMS:
 			return false, nil
 		}
@@ -114,6 +117,43 @@ func SavePlayerMapRecordIfImproved(database *sql.DB, record models.PlayerMapReco
 		return false, err
 	}
 	return true, nil
+}
+
+func playerMapRecordMetadataChanged(next models.PlayerMapRecord, latest models.PlayerMapRecord) bool {
+	if next.Rank != latest.Rank ||
+		next.TotalRanks != latest.TotalRanks {
+		return true
+	}
+
+	if !sameOptionalTime(next.DateSet, latest.DateSet) {
+		return true
+	}
+	if !sameOptionalInt(next.Completions, latest.Completions) {
+		return true
+	}
+	return !sameOptionalInt(next.GroupTier, latest.GroupTier)
+}
+
+func sameOptionalInt(a *int, b *int) bool {
+	switch {
+	case a == nil && b == nil:
+		return true
+	case a == nil || b == nil:
+		return false
+	default:
+		return *a == *b
+	}
+}
+
+func sameOptionalTime(a *time.Time, b *time.Time) bool {
+	switch {
+	case a == nil && b == nil:
+		return true
+	case a == nil || b == nil:
+		return false
+	default:
+		return a.Equal(*b)
+	}
 }
 
 func InsertPlayerMapRecord(database *sql.DB, record models.PlayerMapRecord) error {
