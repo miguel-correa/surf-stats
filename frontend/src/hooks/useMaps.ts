@@ -3,6 +3,7 @@ import type { PaginatedMaps } from '../types/Map';
 
 export type SortColumn = 'difficulty' | 'completions' | 'tier' | 'primary_group';
 export type CompletionFilter = 'all' | 'completed' | 'incomplete';
+export type PrimaryGroupFilter = 'ungrouped' | '6' | '5' | '4' | '3' | '2' | '1' | '0';
 
 export interface MapFilters {
     tiers: number[];
@@ -10,6 +11,7 @@ export interface MapFilters {
     linear: 'all' | 'linear' | 'staged';
     playerIds: string[];
     primaryPlayerId: string;
+    primaryGroups: PrimaryGroupFilter[];
     completion: CompletionFilter;
     sort: SortColumn;
     order: 'asc' | 'desc';
@@ -46,6 +48,7 @@ export function useMaps(filters: MapFilters,
                 if (filters.linear === 'staged') params.append('linear', '0');
                 filters.playerIds.forEach((steamId) => params.append('steam_id', steamId));
                 if (filters.primaryPlayerId) params.append('primary_steam_id', filters.primaryPlayerId);
+                filters.primaryGroups.forEach((group) => params.append('primary_group', group));
                 if (filters.completion !== 'all') params.append('completion_status', filters.completion);
                 params.append('sort', filters.sort)
                 params.append('order', filters.order)
@@ -77,7 +80,7 @@ export function useMaps(filters: MapFilters,
         fetchMaps();
 
         return () => controller.abort();
-    }, [filters.tiers, filters.search, filters.linear, filters.playerIds, filters.primaryPlayerId, filters.completion, filters.sort, filters.order, page, perPage, refreshKey])
+    }, [filters.tiers, filters.search, filters.linear, filters.playerIds, filters.primaryPlayerId, filters.primaryGroups, filters.completion, filters.sort, filters.order, page, perPage, refreshKey])
 
     return { paginatedData, isLoading, error }
 }

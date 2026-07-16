@@ -15,6 +15,7 @@ type MapFilters struct {
 	Linear         *int
 	SteamIDs       []string
 	PrimarySteamID string
+	PrimaryGroups  []string
 	Completion     CompletionFilter
 	SortCol        string
 	Order          string
@@ -258,6 +259,8 @@ func buildMapsWhereClause(filters MapFilters, args *[]any) string {
 		*args = append(*args, *filters.Linear)
 	}
 
+	query += buildPrimaryGroupWhereClause(filters, args)
+
 	if len(filters.SteamIDs) > 0 {
 		switch filters.Completion {
 		case CompletionCompleted:
@@ -268,6 +271,57 @@ func buildMapsWhereClause(filters MapFilters, args *[]any) string {
 	}
 
 	return query
+}
+
+func buildPrimaryGroupWhereClause(filters MapFilters, args *[]any) string {
+	if len(filters.PrimaryGroups) == 0 {
+		return ""
+	}
+	if filters.PrimarySteamID == "" {
+		return " AND 1=0"
+	}
+
+	includeUngrouped := false
+	groupValues := make([]string, 0, len(filters.PrimaryGroups))
+	for _, group := range filters.PrimaryGroups {
+		if group == "ungrouped" {
+			includeUngrouped = true
+			continue
+		}
+		groupValues = append(groupValues, group)
+	}
+
+	conditions := make([]string, 0, 2)
+	if includeUngrouped {
+		conditions = append(conditions, "pr.group_tier IS NULL")
+	}
+	if len(groupValues) > 0 {
+		placeholders := strings.Repeat("?,", len(groupValues)-1) + "?"
+		conditions = append(conditions, "pr.group_tier IN ("+placeholders+")")
+	}
+	if len(conditions) == 0 {
+		return ""
+	}
+
+	*args = append(*args, filters.PrimarySteamID)
+	for _, group := range groupValues {
+		*args = append(*args, group)
+	}
+
+	return `
+		AND EXISTS (
+			SELECT 1
+			FROM player_map_records pr
+			WHERE pr.id = (
+				SELECT best.id
+				FROM player_map_records best
+				WHERE best.steam_id = ? AND best.ksf_map_id = maps.ksf_map_id
+				ORDER BY best.surf_time_ms ASC, best.id DESC
+				LIMIT 1
+			)
+			AND (` + strings.Join(conditions, " OR ") + `)
+		)
+	`
 }
 
 func buildSelectedCompletionCountExpr(steamIDs []string, args *[]any) string {

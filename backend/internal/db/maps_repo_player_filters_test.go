@@ -133,6 +133,122 @@ func TestGetMapsFiltersByCompletionStatus(t *testing.T) {
 	}
 }
 
+func TestGetMapsFiltersByPrimaryGroup(t *testing.T) {
+	database := openPlayerMapsTestDatabase(t)
+
+	seedMapsForPlayerFilterTests(t, database)
+	if _, err := database.Exec(`
+		INSERT INTO maps (ksf_map_id, name, tier, added, completions, playtime_seconds, comp_per_hour, bonus, linear)
+		VALUES (4, 'surf_delta', 4, 1710000300, 400, 14400, 100.0, 0, 1)
+	`); err != nil {
+		t.Fatalf("seed missed map failed: %v", err)
+	}
+
+	group0 := 0
+	group5 := 5
+	group6 := 6
+	savePlayerPB(t, database, models.PlayerMapRecord{
+		SteamID:    "STEAM_0:1:75949009",
+		PlayerID:   949217,
+		KSFMapID:   1,
+		SurfTimeMS: 38565,
+		Rank:       2306,
+		TotalRanks: 27893,
+		GroupTier:  &group6,
+	})
+	savePlayerPB(t, database, models.PlayerMapRecord{
+		SteamID:    "STEAM_0:1:00000001",
+		PlayerID:   111111,
+		KSFMapID:   1,
+		SurfTimeMS: 39000,
+		Rank:       2000,
+		TotalRanks: 27893,
+		GroupTier:  &group0,
+	})
+	savePlayerPB(t, database, models.PlayerMapRecord{
+		SteamID:    "STEAM_0:1:75949009",
+		PlayerID:   949217,
+		KSFMapID:   2,
+		SurfTimeMS: 205000,
+		Rank:       100,
+		TotalRanks: 5000,
+		GroupTier:  &group5,
+	})
+	savePlayerPB(t, database, models.PlayerMapRecord{
+		SteamID:    "STEAM_0:1:75949009",
+		PlayerID:   949217,
+		KSFMapID:   3,
+		SurfTimeMS: 155000,
+		Rank:       300,
+		TotalRanks: 5000,
+	})
+
+	g6, err := GetMaps(database, MapFilters{
+		PrimarySteamID: "STEAM_0:1:75949009",
+		PrimaryGroups:  []string{"6"},
+		SortCol:        "id",
+		Order:          "asc",
+		Page:           1,
+		PerPage:        10,
+		Completion:     CompletionAll,
+	})
+	if err != nil {
+		t.Fatalf("GetMaps primary group g6 returned error: %v", err)
+	}
+	if g6.Total != 1 {
+		t.Fatalf("g6.Total = %d, want 1", g6.Total)
+	}
+	assertMapOrder(t, g6.Maps, []int{1})
+
+	g6AndG5, err := GetMaps(database, MapFilters{
+		PrimarySteamID: "STEAM_0:1:75949009",
+		PrimaryGroups:  []string{"6", "5"},
+		SortCol:        "id",
+		Order:          "asc",
+		Page:           1,
+		PerPage:        10,
+		Completion:     CompletionAll,
+	})
+	if err != nil {
+		t.Fatalf("GetMaps primary groups g6/g5 returned error: %v", err)
+	}
+	if g6AndG5.Total != 2 {
+		t.Fatalf("g6AndG5.Total = %d, want 2", g6AndG5.Total)
+	}
+	assertMapOrder(t, g6AndG5.Maps, []int{1, 2})
+
+	ungrouped, err := GetMaps(database, MapFilters{
+		PrimarySteamID: "STEAM_0:1:75949009",
+		PrimaryGroups:  []string{"ungrouped"},
+		SortCol:        "id",
+		Order:          "asc",
+		Page:           1,
+		PerPage:        10,
+		Completion:     CompletionAll,
+	})
+	if err != nil {
+		t.Fatalf("GetMaps primary group ungrouped returned error: %v", err)
+	}
+	if ungrouped.Total != 1 {
+		t.Fatalf("ungrouped.Total = %d, want 1", ungrouped.Total)
+	}
+	assertMapOrder(t, ungrouped.Maps, []int{3})
+
+	otherPrimary, err := GetMaps(database, MapFilters{
+		PrimarySteamID: "STEAM_0:1:00000001",
+		PrimaryGroups:  []string{"0"},
+		SortCol:        "id",
+		Order:          "asc",
+		Page:           1,
+		PerPage:        10,
+		Completion:     CompletionAll,
+	})
+	if err != nil {
+		t.Fatalf("GetMaps other primary group returned error: %v", err)
+	}
+	assertMapOrder(t, otherPrimary.Maps, []int{1})
+}
+
 func TestGetMapsReturnsAllSelectedPlayerSummariesAndPrimaryProjection(t *testing.T) {
 	database := openPlayerMapsTestDatabase(t)
 

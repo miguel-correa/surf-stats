@@ -38,6 +38,7 @@ func GetMaps(database *sql.DB) http.HandlerFunc {
 		if primarySteamID == "" && len(steamIDs) > 0 {
 			primarySteamID = steamIDs[0]
 		}
+		primaryGroups := parsePrimaryGroups(q["primary_group"])
 
 		completion := db.CompletionAll
 		switch q.Get("completion_status") {
@@ -83,6 +84,7 @@ func GetMaps(database *sql.DB) http.HandlerFunc {
 			Linear:         linearFilter,
 			SteamIDs:       steamIDs,
 			PrimarySteamID: primarySteamID,
+			PrimaryGroups:  primaryGroups,
 			Completion:     completion,
 			SortCol:        sortCol,
 			Order:          order,
@@ -202,6 +204,26 @@ func timeUntilSeconds(t time.Time) int64 {
 		return 0
 	}
 	return int64(seconds)
+}
+
+func parsePrimaryGroups(values []string) []string {
+	seen := make(map[string]struct{}, len(values))
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		if value != "ungrouped" {
+			group, err := strconv.Atoi(value)
+			if err != nil || group < 0 || group > 6 {
+				continue
+			}
+			value = strconv.Itoa(group)
+		}
+		if _, exists := seen[value]; exists {
+			continue
+		}
+		seen[value] = struct{}{}
+		result = append(result, value)
+	}
+	return result
 }
 
 func dedupeStrings(values []string) []string {

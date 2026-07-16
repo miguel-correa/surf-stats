@@ -64,6 +64,7 @@ function getInitialFilters(): MapFilters {
     linear: 'all',
     playerIds: readStoredPlayerIds(),
     primaryPlayerId: readStoredPrimaryPlayerId(),
+    primaryGroups: [],
     completion: 'all',
     sort: 'difficulty',
     order: 'desc'
